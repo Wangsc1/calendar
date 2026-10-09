@@ -90,11 +90,12 @@ function DayCell({ d, month, today, selected, holidays, settings, onSelect }: {
     : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 40, height: 40 }} />
   return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={isToday ? 1 : dim}
     background={isToday || isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
-    overlay={mark ? { alignment: 'topTrailing', content: <Text font={9} fontWeight="heavy" foregroundStyle={markColor}
-      padding={{ top: 1, trailing: 6 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
+    // 休/班与小组件一致：所有日期都贴在40点红底的右上外缘，保留约1点间隙。
+    overlay={mark ? { alignment: 'center', content: <Text font={9} fontWeight="heavy" foregroundStyle={markColor}
+      offset={{ x: 20, y: -19 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
     <Text font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
     <Text font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
-      underline={info.lunarDay === 1 ? '#e74748' : undefined}>{label}</Text>
+      underline={info.lunarDay === 1 ? (isToday ? 'white' : '#e74748') : undefined}>{label}</Text>
   </VStack>
 }
 function HomePage() {

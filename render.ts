@@ -71,11 +71,15 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const labelY = y + lunarSize + 6
       // 大号今日圆点与中号同为列宽比例，不随月视图行距放大。
       const radius = Math.min(col * .46, (month ? col * .46 : rowGap * .49)) * .88 * 1.06
-      if (current) out.push(todayShape(x, y + 1, radius, settings))
+      const centerY = month ? y + 1 : (y - size * .75 + labelY) / 2
+      if (current) out.push(todayShape(x, centerY, radius, settings))
       out.push(text(x, y, String(d.day), size, color, 900, .1))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
-      out.push(badge(d, holidays, x + col * .32, y - 10, settings, 7.5, 900, .05))
+      // 今天的标记按红底外缘定位，保持字/点完整位于高亮外。
+      const badgeX = current && !month ? x + radius + 5 : x + col * .32
+      const badgeY = current && !month ? centerY - radius * .55 : y - 10
+      out.push(badge(d, holidays, badgeX, badgeY, settings, 7.5, 900, .05))
     })
     const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`
     out.push(text(w / 2, h - 3, footer, fit(f.today, footer, w - 8), '#dddde1'))

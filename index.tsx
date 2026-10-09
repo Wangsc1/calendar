@@ -1,5 +1,5 @@
 import { Button, Circle, HStack, Image, List, Navigation, NavigationStack, Picker, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
-import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, defaultAppearance, normalizeAppearance, weekOrder } from './calendar'
+import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
 
@@ -59,11 +59,6 @@ function SettingsPage({ settings, setSettings, close }: { settings: Appearance; 
             <Text tag="circle">圆</Text><Text tag="square">方</Text>
           </Picker>
         </HStack>
-        <Button role="destructive" action={() => { void feedback(async () => {
-          if (!await Dialog.confirm({ title: '重置所有设置', message: '仅重置本脚本外观与每周首日，不删除假日缓存。', confirmLabel: '重置', cancelLabel: '取消' })) return null
-          if (!persist(defaultAppearance(), setSettings)) return null
-          return '外观设置已重置，假日缓存保留；iOS刷新可能延迟。'
-        }) }}><RowLabel title="重置所有设置" symbol="arrow.counterclockwise" color="systemOrange" /></Button>
       </Section>
       <Section header={<Text>预览小组件</Text>}><PreviewButton /></Section>
       <Section header={<Text>数据</Text>}>

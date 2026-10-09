@@ -1,12 +1,12 @@
 # 双周农历日历 · iPhone Scripting
 
-**版本 1.6.0。这是 Scripting 项目，不是 Scriptable 脚本。** 中号显示包含今天的一周及下一周，共7列、两行；每周开始可选周一至周日，默认周一；固定深灰底。按北京时间（UTC+8）确定“今天”，不跟随旅行时区。
+**版本 1.7.0。这是 Scripting 项目，不是 Scriptable 脚本。** 中号显示包含今天的一周及下一周，共7列、两行；每周开始可选周一至周日，默认周一；固定深灰底。按北京时间（UTC+8）确定“今天”，不跟随旅行时区。
 
 ## 安装与使用
 
 ### 本地源码包（无需GitHub）
 
-1. 将 `calendar-1.6.0.zip` 保存到 iPhone“文件”，解压得到 `calendar` 文件夹。
+1. 将 `calendar-1.7.0.zip` 保存到 iPhone“文件”，解压得到 `calendar` 文件夹。
 2. 在 Scripting 中创建名为 `calendar` 的脚本项目，将解压后的**全部文件及子目录**导入/复制到该项目目录。不要只粘贴 `widget.tsx`：`vendor/lunar.js`、数据模块、许可证都必须保留。目录根部应直接包含 `script.json`、`index.tsx`、`widget.tsx`，不要多套一层 `calendar/calendar`。
 3. 如果你的 Scripting 版本提供本地ZIP导入，可以直接尝试导入本包；不同版本入口名称可能不同。本次未在iPhone验证ZIP导入交互。手动创建项目并复制源码是离线备用方法，不需要 npm 或联网构建。
 4. 在 Scripting 内运行“**双周农历日历**”（内部名 `calendar`），打开黑色分组设置页，点击蓝色“预览小组件”。

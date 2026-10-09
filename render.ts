@@ -69,17 +69,22 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const size = Math.min(wf.date + 1, rowGap * .58, col * .62), lunarSize = Math.min(wf.lunar, rowGap * .27)
       const label = current || info.lunarDay === 1 ? info.lunarLabel : info.label
       const labelY = y + lunarSize + 6
-      // 大号今日圆点与中号同为列宽比例，不随月视图行距放大。
-      const radius = Math.min(col * .46, (month ? col * .46 : rowGap * .49)) * .88 * 1.06
-      const centerY = month ? y + 1 : (y - size * .75 + labelY) / 2
+      // 今日红底以日期顶部到农历下划线的整体为中心；半径刚好包住下划线。
+      const lineHalf = 6, lineY = labelY + 3
+      const blockTop = y - size * .75
+      const centerY = month ? y + 1 : (blockTop + lineY) / 2
+      const fitRadius = Math.hypot(lineHalf, lineY - centerY) + 2.5
+      const radius = month ? col * .46 * .88 * 1.06 : Math.max(fitRadius, size * .95)
       if (current) out.push(todayShape(x, centerY, radius, settings))
       out.push(text(x, y, String(d.day), size, color, 900, .1))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
-      if (info.lunarDay === 1 && (month || !current)) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
-      // 今天的标记按红底外缘定位，保持字/点完整位于高亮外。
-      const badgeX = x + col * .32
-      // 标记文字基线放在红底上沿之外；点标记也随之上移。
-      const badgeY = current && !month ? centerY - radius - 3 : y - 10
+      if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${lineY}" x2="${x + lineHalf}" y2="${lineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
+      // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
+      let badgeX = x + col * .32, badgeY = y - 10
+      if (current && !month) {
+        const half = 7.5 / 2
+        while (Math.hypot(badgeX - half - x, badgeY - centerY) < radius + 1.5) { badgeX += .5; badgeY -= .5 }
+      }
       out.push(badge(d, holidays, badgeX, badgeY, settings, 7.5, 900, .05))
     })
     const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`

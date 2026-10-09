@@ -2,7 +2,7 @@
   "name": "calendar",
   "icon": "calendar",
   "color": "#e74748",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "description": "Chinese lunar calendar with solar terms and mainland China holiday schedules",
   "localizedNames": {
     "zh": "日历"

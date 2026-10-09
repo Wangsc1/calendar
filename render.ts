@@ -75,10 +75,11 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       if (current) out.push(todayShape(x, centerY, radius, settings))
       out.push(text(x, y, String(d.day), size, color, 900, .1))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
-      if (info.lunarDay === 1) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
+      if (info.lunarDay === 1 && (month || !current)) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
       // 今天的标记按红底外缘定位，保持字/点完整位于高亮外。
-      const badgeX = current && !month ? x + radius + 5 : x + col * .32
-      const badgeY = current && !month ? centerY - radius * .55 : y - 10
+      const badgeX = x + col * .32
+      // 标记文字基线放在红底上沿之外；点标记也随之上移。
+      const badgeY = current && !month ? centerY - radius - 3 : y - 10
       out.push(badge(d, holidays, badgeX, badgeY, settings, 7.5, 900, .05))
     })
     const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`

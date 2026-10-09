@@ -37,7 +37,7 @@ function PreviewButton({ mode = 'week' }: { mode?: LayoutMode }) {
 }
 function CustomPage({ initial, onSaved }: { initial: Appearance; onSaved: (value: Appearance) => void }) {
   const [settings, setSettings] = useState(initial)
-  const [mode, setMode] = useState<LayoutMode>('month')
+  const [mode, setMode] = useState<LayoutMode>('day')
   const [holidays, setHolidays] = useState<HolidayResult[]>([])
   const today = chinaToday()
   const dateStamp = `${today.year}-${today.month}-${today.day}`

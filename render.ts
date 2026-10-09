@@ -31,18 +31,32 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
   } else if (mode === 'day') {
     const i = dayInfo(today), x = w * .097, available = w * .806
     const scale = Math.min(w / 126, h / 126)
-    const left = (y: number, value: string, size: number, color = '#ffffff') =>
-      text(x, y * h, value, fit(size * .8 * scale, value, available), color, 400).replace('text-anchor="middle"', 'text-anchor="start"')
-    out.push(left(.207, `周${WEEKDAY_NAMES[i.weekday]}`, Math.min(f.weekday, 24), '#e74748'))
-    out.push(left(.526, String(today.day), Math.min(f.date, 56)))
+    const sizeFor = (size: number, value: string) => fit(size * .8 * scale, value, available)
+    const left = (y: number, value: string, size: number, color = '#ffffff', weight = 400) =>
+      text(x, y, value, size, color, weight).replace('text-anchor="middle"', 'text-anchor="start"')
+    const weekday = `周${WEEKDAY_NAMES[i.weekday]}`, gregorian = `${today.year}年${today.month}月`
+    const weekdaySize = sizeFor(f.weekday, weekday), infoSize = sizeFor(f.today, gregorian)
+    const weekdayY = h * .207, infoY = h * .687
+    // 按可见墨迹边缘居中，不取两个baseline的中点。数字近似Helvetica的
+    // cap-height/下沿，中文按PingFang常规字形上沿/下沿估计；并随用户字号重算。
+    const weekdayBottom = weekdayY + weekdaySize * .10, infoTop = infoY - infoSize * .80
+    const digitSize = sizeFor(f.date, String(today.day))
+    const digitY = (weekdayBottom + infoTop) / 2 + digitSize * (.73 - .02) / 2
+    out.push(left(weekdayY, weekday, weekdaySize, '#e74748', 500))
+    out.push(left(digitY, String(today.day), digitSize))
     out.push(badge(today, holidays, w * .88, h * .16, settings))
     // 普通日期不重复显示农历日；只有实际节日/节气才在日期与年月之间显示。
     const event = i.festivals.join(' / ') || i.term
-    if (event) out.push(left(.592, event, Math.min(f.lunar, 14)))
+    if (event) {
+      const digitBottom = digitY + digitSize * .02
+      const gap = Math.max(0, infoTop - digitBottom)
+      const eventSize = Math.min(sizeFor(f.lunar, event), gap * .62)
+      out.push(left((digitBottom + infoTop) / 2 + eventSize * .35, event, eventSize))
+    }
     const [yearInfo, lunarInfo] = i.footer.split(' ')
-    out.push(left(.687, `${today.year}年${today.month}月`, Math.min(f.today, 18)))
-    out.push(left(.793, yearInfo, Math.min(f.today, 18)))
-    out.push(left(.899, lunarInfo, Math.min(f.today, 18)))
+    out.push(left(infoY, gregorian, infoSize))
+    out.push(left(h * .805, yearInfo, sizeFor(f.today, yearInfo)))
+    out.push(left(h * .923, lunarInfo, sizeFor(f.today, lunarInfo)))
   } else {
     const month = mode === 'month', col = w / 7
     const headerY = month ? 39 : 15, firstY = month ? 63 : 39

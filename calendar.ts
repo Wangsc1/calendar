@@ -2,6 +2,23 @@ import { Solar } from './vendor/lunar'
 
 export const MIN_YEAR = 1901
 export const MAX_YEAR = 2099
+export const DEFAULT_WEEK_START = 1 // 与Date星期编号一致：周日0，周一1，…周六6。
+export const WEEK_START_KEY = 'calendar.weekStart.v1'
+export const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六']
+export function normalizeWeekStart(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 6 ? value : DEFAULT_WEEK_START
+}
+export function readWeekStart(): number {
+  try { return normalizeWeekStart(Storage.get<unknown>(WEEK_START_KEY)) } catch { return DEFAULT_WEEK_START }
+}
+export function saveWeekStart(value: number): boolean {
+  if (normalizeWeekStart(value) !== value) return false
+  try { return Storage.set(WEEK_START_KEY, value) } catch { return false }
+}
+export function weekOrder(start = DEFAULT_WEEK_START): number[] {
+  return Array.from({ length: 7 }, (_, i) => (normalizeWeekStart(start) + i) % 7)
+}
+export function isWeekend(day: number): boolean { return day === 0 || day === 6 }
 export type CivilDate = { year: number; month: number; day: number }
 export type DayInfo = CivilDate & {
   key: string; weekday: number; lunarMonth: number; lunarDay: number
@@ -18,9 +35,9 @@ export function addDays(d: CivilDate, n: number): CivilDate {
   return { year: x.getUTCFullYear(), month: x.getUTCMonth() + 1, day: x.getUTCDate() }
 }
 export function weekday(d: CivilDate): number { return new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay() }
-export function fortnight(d: CivilDate): CivilDate[] {
-  const monday = addDays(d, -((weekday(d) + 6) % 7))
-  return Array.from({ length: 14 }, (_, i) => addDays(monday, i))
+export function fortnight(d: CivilDate, start = DEFAULT_WEEK_START): CivilDate[] {
+  const first = addDays(d, -((weekday(d) - normalizeWeekStart(start) + 7) % 7))
+  return Array.from({ length: 14 }, (_, i) => addDays(first, i))
 }
 // 传统节日只在非闰月匹配；小年有地域差异，分别显示北/南。
 const traditional: Record<string, string> = {

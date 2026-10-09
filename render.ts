@@ -1,18 +1,17 @@
-import { CivilDate, dayInfo, dateKey, fortnight } from './calendar'
+import { CivilDate, dayInfo, dateKey, fortnight, weekOrder, WEEKDAY_NAMES, isWeekend, DEFAULT_WEEK_START } from './calendar'
 import { HolidayResult, holidayOn } from './holidays'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-export function calendarSVG(today: CivilDate, holidays: HolidayResult[], width = 306, height = 126): string {
+export function calendarSVG(today: CivilDate, holidays: HolidayResult[], width = 306, height = 126, weekStart = DEFAULT_WEEK_START): string {
   const w = Math.max(260, width), h = Math.max(120, height)
   const col = w / 7, rowGap = (h - 43) / 2
   const txt = (x: number, y: number, s: string, size: number, color: string, weight = 400) =>
     `<text x="${x}" y="${y}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(s)}</text>`
   const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><g font-family="-apple-system, PingFang SC, Helvetica, sans-serif">`]
-  const week = ['一', '二', '三', '四', '五', '六', '日']
-  week.forEach((s, i) => out.push(txt(col * (i + .5), 12, s, 11, i >= 5 ? '#94949a' : '#f3f3f5')))
-  fortnight(today).forEach((d, i) => {
+  weekOrder(weekStart).forEach((day, i) => out.push(txt(col * (i + .5), 12, WEEKDAY_NAMES[day], 11, isWeekend(day) ? '#94949a' : '#f3f3f5')))
+  fortnight(today, weekStart).forEach((d, i) => {
     const info = dayInfo(d), x = col * ((i % 7) + .5), y = 40 + Math.floor(i / 7) * rowGap
     const isToday = dateKey(today) === info.key
-    const color = isToday ? '#ffffff' : i % 7 >= 5 ? '#94949a' : '#f7f7f8'
+    const color = isToday ? '#ffffff' : isWeekend(info.weekday) ? '#94949a' : '#f7f7f8'
     if (isToday) out.push(`<circle cx="${x}" cy="${y + 2}" r="20" fill="#e74748"/>`)
     out.push(txt(x, y, String(d.day), 20, color, 500))
     // 今天的红底涵盖农历/节日标签；标签最长5字，局部缩小不挤占邻列。

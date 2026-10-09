@@ -1,19 +1,19 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "files": {
-    "index.tsx": "9425a9b9317dddd1edb1b2d4c57ad223682b4d88f8d88b749fbc73d048387bce",
-    "widget.tsx": "ceb8da9c9283ad56ecdb98ad23a2743b103f0434a8db30cbb327a063632bc215",
-    "calendar.ts": "901141f7d489cf1fe3adce71e94b4c02ab094f8e8ef0a08e39f5b8c770ef6e47",
+    "index.tsx": "b7bab33fae2de08a9ca5b7e9dd4f407479cfd536c0c48c5bf696e2345880b6f5",
+    "widget.tsx": "b397f5f95605e90d2a392d3cb456e1ef558dae1f09c46f25d308be87cbb77054",
+    "calendar.ts": "928c6986574cf56b7b5d72c1792c80fb81f91cee0ef1d8d787885bf29b8a1795",
     "holidays.ts": "6243c4e006e35edbaf98d88badc3386bb3764ce216030fc45f4b6b26d6303409",
     "holiday-2026.ts": "56d58262d28e33f74fc05d7e6424711e36a67a6fdd727c3179038d17db5f042c",
-    "render.ts": "2e09e9462bd776bdda5fccae011a60d61b06552bfde4bfcfb21fa2fc16322104",
+    "render.ts": "32c7781fdd961edbe85c8b9d6b6973e55444d8bcd441aefe81da4d29e0f2dc03",
     "update.ts": "1b9eda8f0c8bbbc69fc8adafb207478d1d1dac922a513b3651f83d966b0700d5",
-    "version.ts": "a2dfaf9949a2dcd105e3ee44bd675bc2f09f8864948f07ada7cc620a5370a8b2",
+    "version.ts": "4fe015e575d03eb5c43d8c65bb77fb29498baadf35d9559dfc1d5afca5c088df",
     "vendor/lunar.js": "7ca838339d45c025eae6196b3d36060ade7dabe244f733628fa805805728ac64",
     "vendor/lunar.d.ts": "8088a351f0d92396cb4afad48b6869a2179b8e3f1083fe4df0c96fe8a97fad1a",
     "licenses/lunar-javascript-MIT.txt": "d9210caf1844dcf410095cea464b79800aad30dbd49df092076b9f0ddc015404",
     "licenses/holiday-cn-MIT.txt": "234e246330285b6589ff2be2381d4ae71fac39b11b1882fd1f6bda6d6f46c4c6",
     "LICENSE": "8f7fcf0193ea1e912403ddd27b59704a8e2989aa78278fbcc8197dbc8cbc8aa0",
-    "README.md": "76691b3140f60dd0afb5a77cdc656af81b66bd1334c4cb885bf4243f4daddf67"
+    "README.md": "ab5d36dadbf29f4706e5fbdf10b1bb82ccd6883a949d8722c202de3a7ce1478e"
   }
 }

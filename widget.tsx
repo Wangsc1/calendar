@@ -1,11 +1,12 @@
 import { SVG, Text, VStack, Widget } from 'scripting'
-import { chinaToday, fortnight, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR } from './calendar'
+import { chinaToday, fortnight, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readWeekStart } from './calendar'
 import { loadHoliday, scriptingHolidayIO } from './holidays'
 import { calendarSVG, compactSVG } from './render'
 
 async function run() {
   const today = chinaToday()
-  const range = fortnight(today)
+  const weekStart = readWeekStart()
+  const range = fortnight(today, weekStart)
   if (range.some(d => d.year < MIN_YEAR || d.year > MAX_YEAR)) {
     Widget.present(<Text widgetBackground="#28282a">农历支持1901—2099年；当前双周超出边界</Text>)
     return
@@ -23,7 +24,7 @@ async function run() {
   const width = Math.max(126, size.width - 32)
   const height = Widget.family === 'systemLarge' ? 158 : Math.max(120, size.height - 32)
   const small = Widget.family === 'systemSmall'
-  const code = small ? compactSVG(today, holidays) : calendarSVG(today, holidays, width, height)
+  const code = small ? compactSVG(today, holidays) : calendarSVG(today, holidays, width, height, weekStart)
   Widget.present(<VStack
     frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }}
     widgetBackground="#28282a"

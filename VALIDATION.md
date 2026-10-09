@@ -2,7 +2,15 @@
 
 验证时间：2026-10-09，北京时间。工作目录 `/opt/openbear/workspace/lunar-work/`；项目交付目录 `/opt/openbear/workspace/artifacts/lunar-calendar/`。测试工具和下载依赖没有放入源码包。
 
-## 1.2.0外观与三布局增量验证
+## 1.2.1限定删减验证
+
+2026-10-09 21:40，北京时间。按用户要求删除 `update.ts`、`update-manifest.json`，移除App更新引用、检查更新/强制重新下载与修复小组件行。版本1.2.1在“高级”Section header的HStack中位于Spacer右侧；原维护组改为“数据”，保留刷新假日缓存。
+
+有限官方文档派生TS接口检查、受影响TSX解析通过。实际设置入口本地Mock核对：高级标题与版本同一HStack右对齐结构；无更新/修复UI及源码更新引用；七首日/字点/圆方Picker、自定义导航、确认重置、原生Widget.preview按钮与数据刷新仍在；点击数据刷新仍取假日数据并请求Widget刷新。`remoteResource`只保留仓库URL，没有自动更新周期。归档15文件与源码逐项一致，删除的两个文件不在包内。未重跑日历既有测试、未做iOS真机验证。
+
+以下旧版记录为历史验证事实；其中源码更新机制在1.2.1已移除，不代表当前仍具备该功能。
+
+## 1.2.0外观与三布局增量验证（历史记录）
 
 2026-10-09 21:30，北京时间。已读取并解码5张新附件PNG（4张1206×2622、1张1206×351）；使用任务提供的逐图视觉描述，不声称逐像素查看或真机复刻。先阅读保留的官方文档：List insetGroup示例、Section分组、Picker menu/segmented、Stepper onIncrement/onDecrement、NavigationLink.destination、Dialog.alert/confirm、preferredColorScheme、scrollContentBackground、Image SF Symbols及useEffect示例。没有猜React/Scriptable接口。
 

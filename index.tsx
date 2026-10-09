@@ -2,7 +2,6 @@ import { Button, HStack, Image, List, Navigation, NavigationLink, NavigationStac
 import { Appearance, FontKey, LayoutMode, FONT_LIMITS, WEEKDAY_NAMES, chinaToday, layoutDates, readAppearance, saveAppearance, defaultAppearance, normalizeAppearance } from './calendar'
 import { HolidayResult, loadHoliday, scriptingHolidayIO } from './holidays'
 import { renderCalendarSVG } from './render'
-import { updateProject, scriptingUpdateIO } from './update'
 import { VERSION } from './version'
 
 const modes: LayoutMode[] = ['day', 'week', 'month']
@@ -83,7 +82,7 @@ function Page() {
     <List navigationTitle="日历设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
       preferredColorScheme="dark" scrollContentBackground="hidden" background="#000000"
       toolbar={{ cancellationAction: <Button title="完成" action={dismiss} /> }}>
-      <Section header={<Text>高级</Text>}>
+      <Section header={<HStack><Text>高级</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
         <Picker label={<RowLabel title="每周首日" symbol="calendar" color="systemOrange" />} pickerStyle="menu"
           value={settings.weekStart} onChanged={(value: number) => {
             if (persist({ ...settings, weekStart: value }, setSettings)) {
@@ -109,9 +108,6 @@ function Page() {
         <NavigationLink destination={<CustomPage initial={settings} onSaved={setSettings} />}>
           <RowLabel title="小组件自定义" symbol="slider.horizontal.3" color="systemPurple" />
         </NavigationLink>
-        <Button action={() => { void feedback(async () => { Widget.reloadAll(); return '已请求刷新；iOS刷新可能延迟。' }) }}>
-          <RowLabel title="修复小组件" symbol="arrow.clockwise" color="systemGreen" />
-        </Button>
         <Button role="destructive" action={() => { void feedback(async () => {
           if (!await Dialog.confirm({ title: '重置所有设置', message: '仅重置本脚本外观与每周首日，不删除假日缓存。', confirmLabel: '重置', cancelLabel: '取消' })) return null
           if (!persist(defaultAppearance(), setSettings)) return null
@@ -119,9 +115,7 @@ function Page() {
         }) }}><RowLabel title="重置所有设置" symbol="arrow.counterclockwise" color="systemOrange" /></Button>
       </Section>
       <Section header={<Text>预览小组件</Text>}><PreviewButton /></Section>
-      <Section header={<Text>{`维护 · ${VERSION}`}</Text>}>
-        <Button title="检查更新" action={() => { void feedback(() => updateProject(scriptingUpdateIO)) }} />
-        <Button title="强制重新下载" action={() => { void feedback(() => updateProject(scriptingUpdateIO, true)) }} />
+      <Section header={<Text>数据</Text>}>
         <Button title="刷新假日缓存" action={() => { void feedback(async () => {
           const today = chinaToday(), years = Array.from(new Set([...layoutDates(today, 'month', settings.weekStart), ...layoutDates(today, 'week', settings.weekStart)].map(d => d.year)))
           const results = await Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO, true)))

@@ -1,4 +1,4 @@
-import { SVG, Text, VStack, Widget } from 'scripting'
+import { SVG, Text, VStack, Widget, gradient } from 'scripting'
 import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout } from './calendar'
 import { loadHoliday, scriptingHolidayIO } from './holidays'
 import { renderCalendarSVG } from './render'
@@ -20,9 +20,21 @@ async function run() {
     return
   }
   const size = Widget.displaySize
+  if (mode === 'day') {
+    // 官方displaySize为完整组件points；不再减32，固定frame避免二次缩小。
+    // 文档没有WidgetKit contentMarginsDisabled接口；仅使用已公开的safe-area修饰符。
+    const width = size.width, height = size.height
+    Widget.present(<VStack spacing={0} padding={0} ignoresSafeArea
+      frame={{ width, height }}
+      widgetBackground={gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' })}>
+      <SVG code={renderCalendarSVG(today, holidays, mode, settings, width, height)}
+        resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
+    </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
+    return
+  }
   const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - 32)
   const code = renderCalendarSVG(today, holidays, mode, settings, width, height)
-  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground={mode === 'day' ? '#1c1c1e' : '#28282a'}>
+  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground="#28282a">
     <SVG code={code} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
   </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
 }

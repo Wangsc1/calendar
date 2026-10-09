@@ -2,7 +2,19 @@
 
 验证时间：2026-10-09，北京时间。工作目录 `/opt/openbear/workspace/lunar-work/`；项目交付目录 `/opt/openbear/workspace/artifacts/lunar-calendar/`。测试工具和下载依赖没有放入源码包。
 
-## 1.2.4真机反证后的日期上移校准
+## 1.3.0新右侧目标、完整容器及删除编辑页
+
+2026-10-09 22:20，北京时间。IMG_4558已读取解码（1206×621），本轮右侧Calunar约491方卡为新权威目标，不延续1.2.x日期offset/126内卡假设。PNG颜色分段实测右侧星期x686/y99..147、日期x692/y194..302、年月x687/y345..384、干支x686/y399..438、农历x686/y454..492；与任务肉眼转述相差数像素为抗锯齿及笔画边界。卡原点约635/47，text左margin取50/491=10.18%，glyph自然左右bearing不额外强行裁剪。
+
+固定设计SVG参考491：星期/日期/年月/干支/农历baseline为96/253/334/389/444（卡高19.55%/51.53%/68.02%/79.23%/90.43%），字号60/150/44/44/44，星期500其余400。这些是为新右侧墨迹位置选择的绘制值，不是声称baseline等于可见上沿；仍须iOS新截图核对字体实际墨迹。右侧可见墨迹约卡高10.6..20.4%/29.9..51.9%/60.7..68.6%/71.7..79.6%/82.9..90.6%。普通日内容动态生成三行，不重复农历日；实际节日/节气短行保留，双位及长文本按宽度适配。小号完全不使用旧Storage.fonts.day，Storage不清除；中大号字号与设置读取不变。
+
+根因路径与方案：此前SVG内宽高=Widget.displaySize−32，SVG再加内距，491截图中左内距约88px。按同图组件约164points估计，旧32points缩减约96截图px，每侧48，再加内距约38，合计86px，吻合现象。新小号直接使用官方Widget.displaySize完整points作为SVG尺寸和根/子视图固定frame，padding/spacing为0并使用官方ignoresSafeArea；不再减32、不再套126静态App预览。实际Mock输入158×158时，根frame、SVG frame/viewBox均158×158，左坐标16.09points（10.18%），SVG绘制尺寸与frame为1:1；在约164points/491截图像素时仅由系统按约3倍栅格化。
+
+已读取本地官方Widget API、safe_area、ShapeStyle，并请求官方https://scriptingapp.github.io/llms-full.txt当前全文确认：displaySize以points返回；公开Widget.present选项仅reloadPolicy/relevance，没有WidgetKit contentMarginsDisabled接口。通用contentMargins是ScrollView/List等的内容边距，不伪造为WidgetKit禁用开关。本版以固定全尺寸frame+ignoresSafeArea去掉脚本层缩小，不能在无真机时证明Scripting宿主会取消全部默认margin。若宿主仍限制可绘区域，需手机新截图/其真实.d.ts确认，不能无限用数字offset补偿。SVG与官方gradient('linear',...) widgetBackground均#363636→#262626；原生圆角/高光归iOS，不绘假边框和Calunar标签。
+
+定点检查通过：App实际入口没有NavigationLink/Stepper/SVG/CustomPage及未用import；三项Picker、原生中号Widget.preview、确认重置/数据刷新、高级HStack版本右对齐保留。旧day字号改动不影响SVG；9/31/闰月/跨年内容、估计宽度及底边适配；中大号4组同输入SVG与1.2.4逐字节一致。严格有限官方接口TS及TSX依赖打包通过；归档15文件与源码一致，没有更新模块。没有本版iOS真机栅格比对，无法声称完全像素一致或字体/宿主边距已在手机证实。
+
+## 1.2.4真机反证后的日期上移校准（历史：目标已被1.3.0取代）
 
 2026-10-09 22:06，北京时间。IMG_4557实际PNG已读取解码（507×512）。1.2.3的中文/Helvetica模型被该真机截图反证，已停用；此前“接近中点”及Linux字体结论不能证明iOS居中，下面旧记录仅为失效模型历史。
 

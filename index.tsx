@@ -141,7 +141,15 @@ function HomePage() {
           <Text font={21} fontWeight="semibold" foregroundStyle="label" monospacedDigit>{`${view.year} / ${view.month}`}</Text>
           <Button title="" systemImage="chevron.right" foregroundStyle="#e74748" action={() => move(1)} />
         </HStack>
-        <VStack spacing={8}>
+        <VStack spacing={8} contentShape="rect" onDragGesture={{
+          minDistance: 20,
+          onEnded: details => {
+            // 水平滑动明显大于竖直滑动才翻页，避免和页面上下滚动冲突。
+            const dx = details.predictedEndTranslation.width, dy = details.translation.height
+            if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+            move(dx < 0 ? 1 : -1)
+          }
+        }}>
           <HStack spacing={0}>
             {weekOrder(settings.weekStart).map(day => <Text font={16} frame={{ maxWidth: 'infinity' }}
               foregroundStyle={isWeekend(day) ? 'secondaryLabel' : 'label'}>{`周${WEEKDAY_NAMES[day]}`}</Text>)}

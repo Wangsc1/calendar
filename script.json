@@ -1,0 +1,10 @@
+{
+  "name": "calendar",
+  "icon": "calendar",
+  "color": "#e74748",
+  "version": "1.0.0",
+  "description": "Offline Chinese lunar fortnight calendar with verified mainland China holiday schedules",
+  "localizedNames": { "zh": "双周农历日历" },
+  "localizedDescriptions": { "zh": "周一开始的双周日历：农历、传统节日、24节气、核实休班" },
+  "remoteResource": { "url": "https://github.com/Wangsc1/calendar" }
+}

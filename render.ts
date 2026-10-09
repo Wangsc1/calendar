@@ -82,8 +82,10 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
       let badgeX = x + col * .32, badgeY = y - 10
       if (current && !month) {
-        const half = 7.5 / 2
-        while (Math.hypot(badgeX - half - x, badgeY - centerY) < radius + 1.5) { badgeX += .5; badgeY -= .5 }
+        // 标记左下角沿45°贴近红底外缘，保留约1点间隙；整枚标记位于右上方，不会碰到圆。
+        const half = 7.5 / 2, gap = 1, corner = (radius + gap) * Math.SQRT1_2
+        badgeX = Math.min(x + corner + half, x + col / 2 - half)
+        badgeY = centerY - corner - 1
       }
       out.push(badge(d, holidays, badgeX, badgeY, settings, 7.5, 900, .05))
     })

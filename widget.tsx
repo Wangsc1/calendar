@@ -25,7 +25,10 @@ async function run() {
     const i = dayInfo(today), mark = holidayOn(today, holidays)
     const [yearInfo, lunarInfo] = i.footer.split(' ')
     const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
+    // 预览实测内容贴边，按右侧参考卡约10.2%内边距显式留白。
+    const inset = Math.round(Math.min(size.width, size.height) * 0.102)
     Widget.present(<VStack alignment="leading" spacing={0}
+      padding={{ top: inset, bottom: inset, leading: inset, trailing: inset }}
       frame={{ maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' }}
       widgetBackground={gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' })}>
       <HStack spacing={0}>

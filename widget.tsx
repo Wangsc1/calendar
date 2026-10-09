@@ -1,6 +1,6 @@
-import { SVG, Text, VStack, Widget, gradient } from 'scripting'
-import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout } from './calendar'
-import { loadHoliday, scriptingHolidayIO } from './holidays'
+import { HStack, Spacer, SVG, Text, VStack, Widget, gradient } from 'scripting'
+import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout, WEEKDAY_NAMES } from './calendar'
+import { holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { renderCalendarSVG } from './render'
 
 async function run() {
@@ -21,14 +21,27 @@ async function run() {
   }
   const size = Widget.displaySize
   if (mode === 'day') {
-    // 官方displaySize为完整组件points；不再减32，固定frame避免二次缩小。
-    // 文档没有WidgetKit contentMarginsDisabled接口；仅使用已公开的safe-area修饰符。
-    const width = size.width, height = size.height
-    Widget.present(<VStack spacing={0} padding={0} ignoresSafeArea
-      frame={{ width, height }}
+    // 小号使用原生文字和系统小组件边距，避免SVG在内容区内被二次缩放。
+    const i = dayInfo(today), mark = holidayOn(today, holidays)
+    const [yearInfo, lunarInfo] = i.footer.split(' ')
+    const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
+    Widget.present(<VStack alignment="leading" spacing={0}
+      frame={{ maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' }}
       widgetBackground={gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' })}>
-      <SVG code={renderCalendarSVG(today, holidays, mode, settings, width, height)}
-        resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
+      <HStack spacing={0}>
+        <Text font={18} fontWeight="medium" foregroundStyle="#e74748" lineLimit={1}>{`周${WEEKDAY_NAMES[i.weekday]}`}</Text>
+        <Spacer />
+        {mark ? <Text font={settings.holidayStyle === 'dot' ? 10 : 12} fontWeight="bold" foregroundStyle={markColor}>
+          {settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> : null}
+      </HStack>
+      <Spacer />
+      <Text font={51} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7}>{String(today.day)}</Text>
+      <Spacer />
+      <VStack alignment="leading" spacing={2}>
+        <Text font={14} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
+        <Text font={14} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
+        <Text font={14} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
+      </VStack>
     </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
     return
   }

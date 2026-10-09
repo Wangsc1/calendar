@@ -91,9 +91,9 @@ function DayCell({ d, month, today, selected, holidays, settings, onSelect }: {
   const label = isToday || info.lunarDay === 1 ? info.lunarLabel : info.label
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
   const shape = settings.todayShape === 'circle'
-    ? <Circle fill={isToday ? '#e74748' : 'rgba(255,255,255,0.14)'} frame={{ width: 50, height: 50 }} />
-    : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'rgba(255,255,255,0.14)'} frame={{ width: 50, height: 50 }} />
-  return <VStack spacing={1} frame={{ maxWidth: 'infinity', height: 58 }} opacity={isToday ? 1 : dim}
+    ? <Circle fill={isToday ? '#e74748' : 'rgba(255,255,255,0.14)'} frame={{ width: 46, height: 46 }} />
+    : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'rgba(255,255,255,0.14)'} frame={{ width: 46, height: 46 }} />
+  return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 58, maxHeight: 58 }} opacity={isToday ? 1 : dim}
     background={isToday || isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
     overlay={mark ? { alignment: 'topTrailing', content: <Text font={10} fontWeight="heavy" foregroundStyle={markColor}
       padding={{ top: 3, trailing: 4 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
@@ -146,7 +146,7 @@ function HomePage() {
             {weekOrder(settings.weekStart).map(day => <Text font={19} frame={{ maxWidth: 'infinity' }}
               foregroundStyle={isWeekend(day) ? '#8e8e93' : 'white'}>{`周${WEEKDAY_NAMES[day]}`}</Text>)}
           </HStack>
-          {rows.map(row => <HStack spacing={0}>
+          {rows.map(row => <HStack spacing={0} frame={{ maxWidth: 'infinity' }}>
             {row.map(d => <DayCell d={d} month={view.month} today={todayKey} selected={dateKey(selected)}
               holidays={holidays} settings={settings} onSelect={value => setSelected(value)} />)}
           </HStack>)}

@@ -31,20 +31,21 @@ async function run() {
       padding={{ top: Math.round(inset * 0.8), bottom: Math.round(inset * 0.8), leading: inset, trailing: inset }}
       frame={{ maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' }}
       widgetBackground={gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' })}>
+      <Spacer />
       <HStack spacing={0}>
         <Text font={20} fontWeight="medium" foregroundStyle="#e74748" lineLimit={1}>{`周${WEEKDAY_NAMES[i.weekday]}`}</Text>
         <Spacer />
         {mark ? <Text font={settings.holidayStyle === 'dot' ? 10 : 12} fontWeight="bold" foregroundStyle={markColor}>
           {settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> : null}
       </HStack>
-      <Spacer />
-      <Text font={74} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7} frame={{ height: 52 }}>{String(today.day)}</Text>
-      <Spacer />
+      <Text font={74} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7}
+        frame={{ height: 54 }} padding={{ top: 8, bottom: 8 }}>{String(today.day)}</Text>
       <VStack alignment="leading" spacing={0}>
-        <Text font={17} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
-        <Text font={17} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
-        <Text font={17} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
+        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
+        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
+        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
       </VStack>
+      <Spacer />
     </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
     return
   }

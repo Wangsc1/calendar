@@ -91,14 +91,14 @@ function DayCell({ d, month, today, selected, holidays, settings, onSelect }: {
   const label = isToday || info.lunarDay === 1 ? info.lunarLabel : info.label
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
   const shape = settings.todayShape === 'circle'
-    ? <Circle fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 46, height: 46 }} />
-    : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 46, height: 46 }} />
-  return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 58, maxHeight: 58 }} opacity={isToday ? 1 : dim}
+    ? <Circle fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 40, height: 40 }} />
+    : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 40, height: 40 }} />
+  return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={isToday ? 1 : dim}
     background={isToday || isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
-    overlay={mark ? { alignment: 'topTrailing', content: <Text font={10} fontWeight="heavy" foregroundStyle={markColor}
-      padding={{ top: 3, trailing: 4 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
-    <Text font={20} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
-    <Text font={11} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
+    overlay={mark ? { alignment: 'topTrailing', content: <Text font={9} fontWeight="heavy" foregroundStyle={markColor}
+      padding={{ top: 1, trailing: 6 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
+    <Text font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
+    <Text font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
       underline={info.lunarDay === 1 ? '#e74748' : undefined}>{label}</Text>
   </VStack>
 }
@@ -133,17 +133,17 @@ function HomePage() {
             content: <SettingsPage settings={settings} setSettings={setSettings} close={() => setShowSettings(false)} /> }} />,
       }}>
       <VStack alignment="leading" spacing={18} padding={{ leading: 16, trailing: 16, top: 8, bottom: 24 }}>
-        <Text font={38} fontWeight="semibold" foregroundStyle="label" onTapGesture={() => {
+        <Text font={34} fontWeight="bold" foregroundStyle="label" onTapGesture={() => {
           setView({ year: today.year, month: today.month, day: 1 }); setSelected(today)
         }}>{`${today.year}年${today.month}月${today.day}日`}</Text>
-        <HStack spacing={28} frame={{ maxWidth: 'infinity' }}>
+        <HStack spacing={36} frame={{ maxWidth: 'infinity' }}>
           <Button title="" systemImage="chevron.left" foregroundStyle="#e74748" action={() => move(-1)} />
-          <Text font={28} fontWeight="semibold" foregroundStyle="label" monospacedDigit>{`${view.year} / ${view.month}`}</Text>
+          <Text font={21} fontWeight="semibold" foregroundStyle="label" monospacedDigit>{`${view.year} / ${view.month}`}</Text>
           <Button title="" systemImage="chevron.right" foregroundStyle="#e74748" action={() => move(1)} />
         </HStack>
         <VStack spacing={8}>
           <HStack spacing={0}>
-            {weekOrder(settings.weekStart).map(day => <Text font={17} frame={{ maxWidth: 'infinity' }}
+            {weekOrder(settings.weekStart).map(day => <Text font={16} frame={{ maxWidth: 'infinity' }}
               foregroundStyle={isWeekend(day) ? 'secondaryLabel' : 'label'}>{`周${WEEKDAY_NAMES[day]}`}</Text>)}
           </HStack>
           {rows.map(row => <HStack spacing={0} frame={{ maxWidth: 'infinity' }}>
@@ -151,7 +151,7 @@ function HomePage() {
               holidays={holidays} settings={settings} onSelect={value => setSelected(value)} />)}
           </HStack>)}
         </VStack>
-        <Text font={16} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`}</Text>
+        <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`}</Text>
       </VStack>
     </ScrollView>
   </NavigationStack>

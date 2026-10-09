@@ -4,7 +4,6 @@
 
 ## 安装
 
-仓库：[Wangsc1/calendar](https://github.com/Wangsc1/calendar)
 
 [一键导入 Scripting](https://scripting.fun/import_scripts?urls=["https%3A%2F%2Fgithub.com%2FWangsc1%2Fcalendar"])
 

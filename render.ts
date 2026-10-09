@@ -37,18 +37,22 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     const weekday = `周${WEEKDAY_NAMES[i.weekday]}`, gregorian = `${today.year}年${today.month}月`
     const weekdaySize = sizeFor(f.weekday, weekday), infoSize = sizeFor(f.today, gregorian)
     const weekdayY = h * .207, infoY = h * .687
-    // 按可见墨迹边缘居中，不取两个baseline的中点。数字近似Helvetica的
-    // cap-height/下沿，中文按PingFang常规字形上沿/下沿估计；并随用户字号重算。
-    const weekdayBottom = weekdayY + weekdaySize * .10, infoTop = infoY - infoSize * .80
+    // IMG_4557真机校准：126 SVG在378px卡内放大3倍、卡顶70px。
+    // 星期墨迹底151px，年月墨迹顶300px，数字墨迹210..295px；
+    // 对照原SVG基线26.082/86.562/66.522及字号16/12/40，得到下列偏移。
+    // 不再使用已被真机反证的中文/Helvetica估算模型。随实际绘制字号缩放；
+    // 双位数字沿用同一iOS数字行度量，仍需手机截图最终确认。
+    const weekdayBottom = weekdayY + weekdaySize * .057375
+    const infoTop = infoY - infoSize * .8246111111
     const digitSize = sizeFor(f.date, String(today.day))
-    const digitY = (weekdayBottom + infoTop) / 2 + digitSize * (.73 - .02) / 2
+    const digitY = (weekdayBottom + infoTop) / 2 + digitSize * .1422166667
     out.push(left(weekdayY, weekday, weekdaySize, '#e74748', 500))
     out.push(left(digitY, String(today.day), digitSize))
     out.push(badge(today, holidays, w * .88, h * .16, settings))
     // 普通日期不重复显示农历日；只有实际节日/节气才在日期与年月之间显示。
     const event = i.festivals.join(' / ') || i.term
     if (event) {
-      const digitBottom = digitY + digitSize * .02
+      const digitBottom = digitY + digitSize * .21195
       const gap = Math.max(0, infoTop - digitBottom)
       const eventSize = Math.min(sizeFor(f.lunar, event), gap * .62)
       out.push(left((digitBottom + infoTop) / 2 + eventSize * .35, event, eventSize))

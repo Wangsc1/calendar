@@ -25,20 +25,24 @@ function badge(d: CivilDate, holidays: HolidayResult[], x: number, y: number, se
 export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: LayoutMode, settings: Appearance, width: number, height: number): string {
   const w = Math.max(110, width), h = Math.max(110, height), f = settings.fonts[mode]
   const days = layoutDates(today, mode, settings.weekStart)
-  const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" rx="16" fill="#28282a"/><g font-family="-apple-system, PingFang SC, Helvetica, sans-serif">`]
+  const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" rx="16" fill="${mode === 'day' ? '#1c1c1e' : '#28282a'}"/><g font-family="-apple-system, PingFang SC, Helvetica, sans-serif">`]
   if (days.some(d => d.year < MIN_YEAR || d.year > MAX_YEAR)) {
     out.push(text(w / 2, h / 2, '农历支持1901—2099年', fit(12, '农历支持1901—2099年', w - 12)))
   } else if (mode === 'day') {
-    const i = dayInfo(today), x = w / 2, center = h * .43
-    out.push(text(x, h * .16, `周${WEEKDAY_NAMES[i.weekday]}`, f.weekday, '#e74748', 600))
-    out.push(todayShape(x, center, Math.min(w * .25, h * .24), settings))
-    out.push(text(x, center + f.date * .34, String(today.day), Math.min(f.date, w * .44, h * .4), '#ffffff', 700))
-    out.push(badge(today, holidays, x + w * .32, center - h * .16, settings))
-    const label = i.festivals.join(' / ') || i.term || i.lunarLabel
-    out.push(text(x, h * .73, label, fit(f.lunar, label, w - 12)))
-    const gregorian = `${today.year}年${today.month}月${today.day}日`
-    out.push(text(x, h * .86, gregorian, fit(f.today, gregorian, w - 10), '#dddde1'))
-    out.push(text(x, h - 3, i.footer, fit(f.today, i.footer, w - 10), '#dddde1'))
+    const i = dayInfo(today), x = w * .097, available = w * .806
+    const scale = Math.min(w / 126, h / 126)
+    const left = (y: number, value: string, size: number, color = '#ffffff') =>
+      text(x, y * h, value, fit(size * .8 * scale, value, available), color, 400).replace('text-anchor="middle"', 'text-anchor="start"')
+    out.push(left(.207, `周${WEEKDAY_NAMES[i.weekday]}`, Math.min(f.weekday, 24), '#e74748'))
+    out.push(left(.526, String(today.day), Math.min(f.date, 56)))
+    out.push(badge(today, holidays, w * .88, h * .16, settings))
+    // 普通日期不重复显示农历日；只有实际节日/节气才在日期与年月之间显示。
+    const event = i.festivals.join(' / ') || i.term
+    if (event) out.push(left(.592, event, Math.min(f.lunar, 14)))
+    const [yearInfo, lunarInfo] = i.footer.split(' ')
+    out.push(left(.687, `${today.year}年${today.month}月`, Math.min(f.today, 18)))
+    out.push(left(.793, yearInfo, Math.min(f.today, 18)))
+    out.push(left(.899, lunarInfo, Math.min(f.today, 18)))
   } else {
     const month = mode === 'month', col = w / 7
     const headerY = month ? 39 : 15, firstY = month ? 63 : 39

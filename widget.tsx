@@ -22,7 +22,7 @@ async function run() {
   const size = Widget.displaySize
   const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - 32)
   const code = renderCalendarSVG(today, holidays, mode, settings, width, height)
-  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground="#28282a">
+  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground={mode === 'day' ? '#1c1c1e' : '#28282a'}>
     <SVG code={code} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
   </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
 }

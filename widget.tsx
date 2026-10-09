@@ -28,22 +28,22 @@ async function run() {
     // 预览实测内容贴边，按右侧参考卡约10.2%内边距显式留白。
     const inset = Math.round(Math.min(size.width, size.height) * 0.102)
     Widget.present(<VStack alignment="leading" spacing={0}
-      padding={{ top: inset, bottom: inset, leading: inset, trailing: inset }}
+      padding={{ top: Math.round(inset * 0.85), bottom: Math.round(inset * 0.8), leading: inset, trailing: inset }}
       frame={{ maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' }}
       widgetBackground={gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' })}>
       <HStack spacing={0}>
-        <Text font={18} fontWeight="medium" foregroundStyle="#e74748" lineLimit={1}>{`周${WEEKDAY_NAMES[i.weekday]}`}</Text>
+        <Text font={20} fontWeight="medium" foregroundStyle="#e74748" lineLimit={1}>{`周${WEEKDAY_NAMES[i.weekday]}`}</Text>
         <Spacer />
         {mark ? <Text font={settings.holidayStyle === 'dot' ? 10 : 12} fontWeight="bold" foregroundStyle={markColor}>
           {settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> : null}
       </HStack>
       <Spacer />
-      <Text font={51} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7}>{String(today.day)}</Text>
+      <Text font={62} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7}>{String(today.day)}</Text>
       <Spacer />
-      <VStack alignment="leading" spacing={2}>
-        <Text font={14} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
-        <Text font={14} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
-        <Text font={14} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
+      <VStack alignment="leading" spacing={0}>
+        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
+        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
+        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
       </VStack>
     </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
     return

@@ -50,7 +50,7 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     out.push(left(444, lunarInfo, 44))
   } else {
     const month = mode === 'month', col = w / 7
-    const headerY = month ? 39 : 15, firstY = month ? 63 : 39
+    const headerY = month ? 39 : 15, firstY = month ? 63 : 44
     const rowGap = month ? (h - 86) / 6 : (h - 44) / 2
     if (month) out.push(text(w / 2, 18, `${today.year}年${today.month}月`, f.today, '#dddde1', 600))
     weekOrder(settings.weekStart).forEach((day, index) => {
@@ -63,9 +63,9 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const size = Math.min(f.date, rowGap * .53, col * .6), lunarSize = Math.min(f.lunar, rowGap * .27)
       const label = current || info.lunarDay === 1 ? info.lunarLabel : info.label
       const labelY = y + lunarSize + 4
-      const radius = Math.min(col * .46, rowGap * .49)
+      const radius = Math.min(col * .46, rowGap * .49) * (month ? 1 : .88)
       if (current) out.push(todayShape(x, y + 1, radius, settings))
-      out.push(text(x, y, String(d.day), size, color, 700))
+      out.push(text(x, y, String(d.day), size, color, month ? 700 : 800))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
       out.push(badge(d, holidays, x + col * .34, y - 10, settings))

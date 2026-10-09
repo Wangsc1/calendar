@@ -1,14 +1,13 @@
 import { SVG, Text, VStack, Widget } from 'scripting'
-import { chinaToday, fortnight, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readWeekStart } from './calendar'
+import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout } from './calendar'
 import { loadHoliday, scriptingHolidayIO } from './holidays'
-import { calendarSVG, compactSVG } from './render'
+import { renderCalendarSVG } from './render'
 
 async function run() {
-  const today = chinaToday()
-  const weekStart = readWeekStart()
-  const range = fortnight(today, weekStart)
+  const today = chinaToday(), settings = readAppearance(), mode = widgetLayout(Widget.family)
+  const range = layoutDates(today, mode, settings.weekStart)
   if (range.some(d => d.year < MIN_YEAR || d.year > MAX_YEAR)) {
-    Widget.present(<Text widgetBackground="#28282a">农历支持1901—2099年；当前双周超出边界</Text>)
+    Widget.present(<Text widgetBackground="#28282a">农历支持1901—2099年；当前范围超出边界</Text>)
     return
   }
   const years = Array.from(new Set(range.map(d => d.year)))
@@ -21,16 +20,10 @@ async function run() {
     return
   }
   const size = Widget.displaySize
-  const width = Math.max(126, size.width - 32)
-  const height = Widget.family === 'systemLarge' ? 158 : Math.max(120, size.height - 32)
-  const small = Widget.family === 'systemSmall'
-  const code = small ? compactSVG(today, holidays) : calendarSVG(today, holidays, width, height, weekStart)
-  Widget.present(<VStack
-    frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }}
-    widgetBackground="#28282a"
-  >
-    <SVG code={code} resizable renderingMode="original" antialiased
-      frame={{ width, height: small ? Math.min(width, height) : height }} />
+  const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - 32)
+  const code = renderCalendarSVG(today, holidays, mode, settings, width, height)
+  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground="#28282a">
+    <SVG code={code} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
   </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
 }
 run()

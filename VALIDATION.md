@@ -1,8 +1,29 @@
-# 本地验证记录（1.0.0基础验证与1.1.0增量验证）
+# 本地验证记录（1.0.0基础验证及1.1.0/1.2.0增量验证）
 
 验证时间：2026-10-09，北京时间。工作目录 `/opt/openbear/workspace/lunar-work/`；项目交付目录 `/opt/openbear/workspace/artifacts/lunar-calendar/`。测试工具和下载依赖没有放入源码包。
 
-## 1.1.0周起始日增量验证
+## 1.2.0外观与三布局增量验证
+
+2026-10-09 21:30，北京时间。已读取并解码5张新附件PNG（4张1206×2622、1张1206×351）；使用任务提供的逐图视觉描述，不声称逐像素查看或真机复刻。先阅读保留的官方文档：List insetGroup示例、Section分组、Picker menu/segmented、Stepper onIncrement/onDecrement、NavigationLink.destination、Dialog.alert/confirm、preferredColorScheme、scrollContentBackground、Image SF Symbols及useEffect示例。没有猜React/Scriptable接口。
+
+10组限定检查通过：
+
+1. 日/周/月默认字号分别20/50/10/15和14/16/9/14；旧1.1.0七种首日迁移、保存重读，新配置优先于旧键。
+2. 无效配置默认、字号上下限限制与四舍五入；存储读取异常/保存false不伪造成功。
+3. 日1格、双周14格、月42格；7种首日下2026年底/2027年初/闰日连续、包含今天、当前月完整覆盖；family映射小/中/大到日/双周/月。
+4. 三布局×字/点×圆/方共12组合：休班橙/蓝色、today圆/方形、全部数字bold、周月日期默认不超过16、日卡日期不超过50、完整公历及生肖农历输出。
+5. 七种首日表头均为周X；真实周末灰、月卡前后月更深灰、今天白字；不是按列位染灰。
+6. 越界布局显示农历范围提示；字体调整确实改变渲染输出，已有农历/节气/休班算法未变。
+7. 实际运行设置入口的本地UI Mock：黑色List/insetGroup/Section、七首日菜单、字点圆方分段、无来源/长说明/明细，蓝色按钮调用原生Widget.preview接口。
+8. 自定义页面Mock：默认月编辑，日/周/月切换不写设置或改变桌面family；4个Stepper只保存各尺寸字号；实时SVG与相同尺寸桌面SVG完全一致，原生预览分别请求systemSmall/Medium/Large。
+9. 重置Dialog.confirm取消零写入；确认只写新外观默认键，保留旧首日键（新默认值覆盖其效果）、假日缓存及其他数据；请求真实Widget刷新。
+10. 更新网络错误通过官方Dialog短反馈，不变成长驻文字。原地更新逻辑和14文件固定名单未改变，无新增模块，因此1.1.0更新器兼容。
+
+严格TS检查使用文档派生有限接口声明通过（新增List/Section/Stepper/NavigationLink/Dialog/useEffect等）；两个入口及全部本地依赖语法/模块解析通过。12个布局样本SVG均可解析，文字锚点在容器内；不等于iOS字体视觉/像素裁剪验证。manifest14摘要、版本1.2.0与ZIP逐文件核对通过。
+
+输出：`ALL 10 APPEARANCE CHECK GROUPS PASSED`；`lunar-work/appearance-output.txt` SHA-256：`a3bf6580eb5944d1d09729c39565e8b9e701295670b8d74da953a1c7caf27202`。没有重跑既有农历全年权威对照。所有Mock、依赖与SVG样本仅在临时目录，不进入安装包；未连接iPhone，List圆角和原生控件最终视觉、跨进程Storage落盘、主屏幕刷新、实时自定义及原生预览真机行为仍待验收。
+
+## 1.1.0周起始日增量验证（历史记录）
 
 验证时间：2026-10-09 21:08，北京时间。先读取官方 `views/controls/picker/zh.md`：数值value、onChanged、带tag的Text选项、menu样式均为官方接口。设置页使用该单选Picker，预览仍只调用 `Widget.preview`，没有自绘仿预览。
 

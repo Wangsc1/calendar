@@ -8,12 +8,51 @@ export const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六']
 export function normalizeWeekStart(value: unknown): number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 6 ? value : DEFAULT_WEEK_START
 }
-export function readWeekStart(): number {
-  try { return normalizeWeekStart(Storage.get<unknown>(WEEK_START_KEY)) } catch { return DEFAULT_WEEK_START }
+export type LayoutMode = 'day' | 'week' | 'month'
+export function widgetLayout(family: string): LayoutMode {
+  return family === 'systemSmall' || family.startsWith('accessory') ? 'day' : family === 'systemLarge' ? 'month' : 'week'
 }
+export type FontKey = 'weekday' | 'date' | 'lunar' | 'today'
+export type FontSizes = Record<FontKey, number>
+export type Appearance = { schema: 2; weekStart: number; holidayStyle: 'text' | 'dot'; todayShape: 'circle' | 'square'; fonts: Record<LayoutMode, FontSizes> }
+export const APPEARANCE_KEY = 'calendar.appearance.v2'
+export const FONT_LIMITS: Record<LayoutMode, Record<FontKey, [number, number]>> = {
+  day: { weekday: [12, 24], date: [32, 56], lunar: [8, 14], today: [10, 18] },
+  week: { weekday: [10, 16], date: [12, 20], lunar: [8, 11], today: [10, 16] },
+  month: { weekday: [10, 16], date: [12, 20], lunar: [8, 11], today: [10, 16] },
+}
+export function defaultAppearance(): Appearance {
+  return { schema: 2, weekStart: 1, holidayStyle: 'text', todayShape: 'circle', fonts: {
+    day: { weekday: 20, date: 50, lunar: 10, today: 15 },
+    week: { weekday: 14, date: 16, lunar: 9, today: 14 },
+    month: { weekday: 14, date: 16, lunar: 9, today: 14 },
+  } }
+}
+export function normalizeAppearance(raw: unknown, legacyWeekStart: unknown = 1): Appearance {
+  const out = defaultAppearance()
+  const x = raw && typeof raw === 'object' ? raw as Partial<Appearance> : {}
+  out.weekStart = normalizeWeekStart(x.weekStart === undefined ? legacyWeekStart : x.weekStart)
+  out.holidayStyle = x.holidayStyle === 'dot' ? 'dot' : 'text'
+  out.todayShape = x.todayShape === 'square' ? 'square' : 'circle'
+  for (const mode of ['day', 'week', 'month'] as LayoutMode[]) for (const key of ['weekday', 'date', 'lunar', 'today'] as FontKey[]) {
+    const n = x.fonts?.[mode]?.[key], [min, max] = FONT_LIMITS[mode][key]
+    if (typeof n === 'number' && Number.isFinite(n)) out.fonts[mode][key] = Math.max(min, Math.min(max, Math.round(n)))
+  }
+  return out
+}
+export function readAppearance(): Appearance {
+  let raw: unknown, legacy: unknown
+  try { raw = Storage.get<unknown>(APPEARANCE_KEY) } catch { /* 默认外观仍可渲染 */ }
+  try { legacy = Storage.get<unknown>(WEEK_START_KEY) } catch { /* 兼容1.1.0旧偏好 */ }
+  return normalizeAppearance(raw, legacy)
+}
+export function saveAppearance(value: Appearance): boolean {
+  try { return Storage.set(APPEARANCE_KEY, normalizeAppearance(value)) } catch { return false }
+}
+export function resetAppearance(): boolean { return saveAppearance(defaultAppearance()) }
+export function readWeekStart(): number { return readAppearance().weekStart }
 export function saveWeekStart(value: number): boolean {
-  if (normalizeWeekStart(value) !== value) return false
-  try { return Storage.set(WEEK_START_KEY, value) } catch { return false }
+  return normalizeWeekStart(value) === value && saveAppearance({ ...readAppearance(), weekStart: value })
 }
 export function weekOrder(start = DEFAULT_WEEK_START): number[] {
   return Array.from({ length: 7 }, (_, i) => (normalizeWeekStart(start) + i) % 7)
@@ -38,6 +77,14 @@ export function weekday(d: CivilDate): number { return new Date(Date.UTC(d.year,
 export function fortnight(d: CivilDate, start = DEFAULT_WEEK_START): CivilDate[] {
   const first = addDays(d, -((weekday(d) - normalizeWeekStart(start) + 7) % 7))
   return Array.from({ length: 14 }, (_, i) => addDays(first, i))
+}
+export function monthGrid(d: CivilDate, start = DEFAULT_WEEK_START): CivilDate[] {
+  const first = { year: d.year, month: d.month, day: 1 }
+  const begin = addDays(first, -((weekday(first) - normalizeWeekStart(start) + 7) % 7))
+  return Array.from({ length: 42 }, (_, i) => addDays(begin, i))
+}
+export function layoutDates(d: CivilDate, mode: LayoutMode, start = DEFAULT_WEEK_START): CivilDate[] {
+  return mode === 'day' ? [d] : mode === 'month' ? monthGrid(d, start) : fortnight(d, start)
 }
 // 传统节日只在非闰月匹配；小年有地域差异，分别显示北/南。
 const traditional: Record<string, string> = {

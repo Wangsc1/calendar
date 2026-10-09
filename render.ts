@@ -14,13 +14,13 @@ function todayShape(x: number, y: number, radius: number, settings: Appearance):
     ? `<circle data-role="today" cx="${x}" cy="${y}" r="${radius}" fill="#e74748"/>`
     : `<rect data-role="today" x="${x - radius}" y="${y - radius}" width="${radius * 2}" height="${radius * 2}" rx="5" fill="#e74748"/>`
 }
-function badge(d: CivilDate, holidays: HolidayResult[], x: number, y: number, settings: Appearance): string {
+function badge(d: CivilDate, holidays: HolidayResult[], x: number, y: number, settings: Appearance, size = 9, weight = 700): string {
   const day = holidayOn(d, holidays)
   if (!day) return ''
   const color = day.isOffDay ? '#55a9ff' : '#ffad52'
   return settings.holidayStyle === 'dot'
     ? `<circle data-role="holiday" cx="${x}" cy="${y - 3}" r="2.5" fill="${color}"/>`
-    : text(x, y, day.isOffDay ? '休' : '班', 9, color, 700)
+    : text(x, y, day.isOffDay ? '休' : '班', size, color, weight)
 }
 export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: LayoutMode, settings: Appearance, width: number, height: number): string {
   const w = Math.max(110, width), h = Math.max(110, height), f = settings.fonts[mode]
@@ -68,7 +68,7 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       out.push(text(x, y, String(d.day), size, color, month ? 700 : 800))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
-      out.push(badge(d, holidays, x + col * .34, y - 10, settings))
+      out.push(month ? badge(d, holidays, x + col * .34, y - 10, settings) : badge(d, holidays, x + col * .32, y - 10, settings, 7.5, 800))
     })
     const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`
     out.push(text(w / 2, h - 3, footer, fit(f.today, footer, w - 8), '#dddde1'))

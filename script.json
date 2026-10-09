@@ -2,7 +2,7 @@
   "name": "calendar",
   "icon": "calendar",
   "color": "#e74748",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Offline Chinese lunar fortnight calendar with verified mainland China holiday schedules",
   "localizedNames": { "zh": "双周农历日历" },
   "localizedDescriptions": { "zh": "日/双周/月日历：农历、节气、核实休班，支持每周首日与休班样式设置" },

@@ -2,9 +2,11 @@ import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isW
 import { HolidayResult, holidayOn } from './holidays'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function text(x: number, y: number, s: string, size: number, color = '#f7f7f8', weight = 400, stroke = 0): string {
-  // SVG字重最大900；更粗时用同色描边模拟。
-  const outline = stroke > 0 ? ` stroke="${color}" stroke-width="${stroke}" stroke-linejoin="round" paint-order="stroke"` : ''
-  return `<text x="${x}" y="${y}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}"${outline}>${esc(s)}</text>`
+  const one = (dx: number, dy: number) => `<text x="${x + dx}" y="${y + dy}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(s)}</text>`
+  if (stroke <= 0) return one(0, 0)
+  // iOS SVG字重最高只到粗体且忽略描边；用同色多次微偏移叠印实现更粗笔画。
+  const offsets: [number, number][] = [[0, 0], [-stroke, 0], [stroke, 0], [0, -stroke], [0, stroke], [-stroke, -stroke], [stroke, -stroke], [-stroke, stroke], [stroke, stroke]]
+  return offsets.map(([dx, dy]) => one(dx, dy)).join('')
 }
 function fit(size: number, s: string, width: number): number {
   // 以中文全宽估计上限，避免长月份/节日/底部信息挤出真实小组件容器。
@@ -67,10 +69,10 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const labelY = y + lunarSize + (month ? 4 : 6)
       const radius = Math.min(col * .46, rowGap * .49) * (month ? 1 : .88 * 1.06)
       if (current) out.push(todayShape(x, y + 1, radius, settings))
-      out.push(month ? text(x, y, String(d.day), size, color, 700) : text(x, y, String(d.day), size, color, 900, .7))
+      out.push(month ? text(x, y, String(d.day), size, color, 700) : text(x, y, String(d.day), size, color, 900, .55))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
-      out.push(month ? badge(d, holidays, x + col * .34, y - 10, settings) : badge(d, holidays, x + col * .32, y - 10, settings, 7.5, 900, .45))
+      out.push(month ? badge(d, holidays, x + col * .34, y - 10, settings) : badge(d, holidays, x + col * .32, y - 10, settings, 7.5, 900, .3))
     })
     const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`
     out.push(text(w / 2, h - 3, footer, fit(f.today, footer, w - 8), '#dddde1'))

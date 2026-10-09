@@ -97,7 +97,7 @@ function DayCell({ d, month, today, selected, holidays, settings, onSelect }: {
     background={isToday || isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
     overlay={mark ? { alignment: 'topTrailing', content: <Text font={10} fontWeight="heavy" foregroundStyle={markColor}
       padding={{ top: 3, trailing: 4 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
-    <Text font={22} fontWeight="bold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
+    <Text font={22} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
     <Text font={12} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
       underline={info.lunarDay === 1 ? '#e74748' : undefined}>{label}</Text>
   </VStack>
@@ -133,7 +133,7 @@ function HomePage() {
             content: <SettingsPage settings={settings} setSettings={setSettings} close={() => setShowSettings(false)} /> }} />,
       }}>
       <VStack alignment="leading" spacing={18} padding={{ leading: 16, trailing: 16, top: 8, bottom: 24 }}>
-        <Text font={40} fontWeight="bold" foregroundStyle="white" onTapGesture={() => {
+        <Text font={40} fontWeight="semibold" foregroundStyle="white" onTapGesture={() => {
           setView({ year: today.year, month: today.month, day: 1 }); setSelected(today)
         }}>{`${today.year}年${today.month}月${today.day}日`}</Text>
         <HStack spacing={28} frame={{ maxWidth: 'infinity' }}>

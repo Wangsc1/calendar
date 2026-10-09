@@ -9,7 +9,7 @@ async function feedback(action: () => Promise<string | null>) {
   busy = true
   try {
     const message = await action()
-    if (message) await Dialog.alert({ title: '双周农历', message: message.slice(0, 320), buttonLabel: '好' })
+    if (message) await Dialog.alert({ title: '日历', message: message.slice(0, 320), buttonLabel: '好' })
   } catch (error) { await Dialog.alert({ title: '操作失败', message: String(error).slice(0, 320), buttonLabel: '好' }) }
   finally { busy = false }
 }

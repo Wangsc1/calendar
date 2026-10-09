@@ -3,8 +3,14 @@
   "icon": "calendar",
   "color": "#e74748",
   "version": "1.7.5",
-  "description": "Offline Chinese lunar fortnight calendar with verified mainland China holiday schedules",
-  "localizedNames": { "zh": "双周农历日历" },
-  "localizedDescriptions": { "zh": "日/双周/月日历：农历、节气、核实休班，支持每周首日与休班样式设置" },
-  "remoteResource": { "url": "https://github.com/Wangsc1/calendar" }
+  "description": "Chinese lunar calendar with solar terms and mainland China holiday schedules",
+  "localizedNames": {
+    "zh": "日历"
+  },
+  "localizedDescriptions": {
+    "zh": "日历首页与日、周、月小组件：农历、节气、休班，支持日夜模式"
+  },
+  "remoteResource": {
+    "url": "https://github.com/Wangsc1/calendar"
+  }
 }

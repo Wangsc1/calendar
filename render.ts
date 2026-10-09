@@ -83,6 +83,14 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
   out.push('</g></svg>')
   return out.join('')
 }
+// 日间模式配色：按深色版颜色逐项映射，红/蓝/橙强调色保持不变，今日红底上的白字不变。
+const LIGHT_COLORS: Record<string, string> = {
+  '#28282a': '#ffffff', '#f7f7f8': '#1c1c1e', '#f3f3f5': '#1c1c1e', '#dddde1': '#3a3a3c',
+  '#94949a': '#8e8e93', '#626269': '#c7c7cc',
+}
+export function lightSVG(code: string): string {
+  return code.replace(/#28282a|#f7f7f8|#f3f3f5|#dddde1|#94949a|#626269/g, c => LIGHT_COLORS[c])
+}
 // 保留已有模块调用签名；桌面与原生Widget预览均执行同一渲染入口。
 export function calendarSVG(today: CivilDate, holidays: HolidayResult[], width = 306, height = 126, weekStart = 1): string {
   return renderCalendarSVG(today, holidays, 'week', { ...defaultAppearance(), weekStart }, width, height)

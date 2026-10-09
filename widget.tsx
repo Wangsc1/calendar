@@ -1,13 +1,13 @@
 import { HStack, Spacer, SVG, Text, VStack, Widget, gradient } from 'scripting'
 import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout, WEEKDAY_NAMES } from './calendar'
 import { holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
-import { renderCalendarSVG } from './render'
+import { lightSVG, renderCalendarSVG } from './render'
 
 async function run() {
   const today = chinaToday(), settings = readAppearance(), mode = widgetLayout(Widget.family)
   const range = layoutDates(today, mode, settings.weekStart)
   if (range.some(d => d.year < MIN_YEAR || d.year > MAX_YEAR)) {
-    Widget.present(<Text widgetBackground="#28282a">农历支持1901—2099年；当前范围超出边界</Text>)
+    Widget.present(<Text widgetBackground={{ light: '#ffffff', dark: '#28282a' }}>农历支持1901—2099年；当前范围超出边界</Text>)
     return
   }
   const years = Array.from(new Set(range.map(d => d.year)))
@@ -30,7 +30,7 @@ async function run() {
     Widget.present(<VStack alignment="leading" spacing={0}
       padding={{ top: Math.round(inset * 0.8), bottom: Math.round(inset * 0.8), leading: inset, trailing: inset }}
       frame={{ maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' }}
-      widgetBackground={gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' })}>
+      widgetBackground={{ light: gradient('linear', { colors: ['#ffffff', '#f2f2f4'], startPoint: 'top', endPoint: 'bottom' }), dark: gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' }) }}>
       <Spacer />
       <HStack spacing={0}>
         <Text font={20} fontWeight="medium" foregroundStyle="#e74748" lineLimit={1}>{`周${WEEKDAY_NAMES[i.weekday]}`}</Text>
@@ -38,12 +38,12 @@ async function run() {
         {mark ? <Text font={settings.holidayStyle === 'dot' ? 10 : 12} fontWeight="bold" foregroundStyle={markColor}>
           {settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> : null}
       </HStack>
-      <Text font={76} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7}
+      <Text font={76} fontWeight="regular" foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.7}
         frame={{ height: 55 }} padding={{ top: 4, bottom: 4 }}>{String(today.day)}</Text>
       <VStack alignment="leading" spacing={0}>
-        <Text font={19} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
-        <Text font={19} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
-        <Text font={19} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
+        <Text font={19} foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
+        <Text font={19} foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
+        <Text font={19} foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
       </VStack>
       <Spacer />
     </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
@@ -51,8 +51,8 @@ async function run() {
   }
   const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - 32)
   const code = renderCalendarSVG(today, holidays, mode, settings, width, height)
-  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground="#28282a">
-    <SVG code={code} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
+  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground={{ light: '#ffffff', dark: '#28282a' }}>
+    <SVG code={{ light: lightSVG(code), dark: code }} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
   </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
 }
 run()

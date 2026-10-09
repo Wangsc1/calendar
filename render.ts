@@ -60,15 +60,15 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const info = dayInfo(d), x = col * ((index % 7) + .5), y = firstY + Math.floor(index / 7) * rowGap
       const current = dateKey(today) === info.key, outside = month && d.month !== today.month
       const color = current ? '#ffffff' : outside ? '#626269' : isWeekend(info.weekday) ? '#94949a' : '#f7f7f8'
-      const size = Math.min(f.date, rowGap * .53, col * .6), lunarSize = Math.min(f.lunar, rowGap * .27)
+      const size = Math.min(f.date + (month ? 0 : 2), rowGap * .58, col * .62), lunarSize = Math.min(f.lunar, rowGap * .27)
       const label = current || info.lunarDay === 1 ? info.lunarLabel : info.label
       const labelY = y + lunarSize + 4
       const radius = Math.min(col * .46, rowGap * .49) * (month ? 1 : .88)
       if (current) out.push(todayShape(x, y + 1, radius, settings))
-      out.push(text(x, y, String(d.day), size, color, month ? 700 : 800))
+      out.push(text(x, y, String(d.day), size, color, month ? 700 : 900))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - 7}" y1="${labelY + 3}" x2="${x + 7}" y2="${labelY + 3}" stroke="#e74748" stroke-width="2"/>`)
-      out.push(month ? badge(d, holidays, x + col * .34, y - 10, settings) : badge(d, holidays, x + col * .32, y - 10, settings, 7.5, 800))
+      out.push(month ? badge(d, holidays, x + col * .34, y - 10, settings) : badge(d, holidays, x + col * .32, y - 10, settings, 7.5, 900))
     })
     const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`
     out.push(text(w / 2, h - 3, footer, fit(f.today, footer, w - 8), '#dddde1'))

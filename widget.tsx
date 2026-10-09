@@ -38,12 +38,12 @@ async function run() {
         {mark ? <Text font={settings.holidayStyle === 'dot' ? 10 : 12} fontWeight="bold" foregroundStyle={markColor}>
           {settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> : null}
       </HStack>
-      <Text font={74} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7}
-        frame={{ height: 54 }} padding={{ top: 8, bottom: 8 }}>{String(today.day)}</Text>
+      <Text font={76} fontWeight="regular" foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.7}
+        frame={{ height: 55 }} padding={{ top: 4, bottom: 4 }}>{String(today.day)}</Text>
       <VStack alignment="leading" spacing={0}>
-        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
-        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
-        <Text font={18} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
+        <Text font={19} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
+        <Text font={19} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
+        <Text font={19} foregroundStyle="#ffffff" lineLimit={1} minScaleFactor={0.75}>{lunarInfo}</Text>
       </VStack>
       <Spacer />
     </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })

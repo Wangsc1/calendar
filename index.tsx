@@ -27,7 +27,7 @@ function RowLabel({ title, symbol, color }: { title: string; symbol: string; col
   </HStack>
 }
 function PreviewButton() {
-  return <Button title="预览小组件" foregroundStyle="systemBlue" action={() => {
+  return <Button title="预览组件" foregroundStyle="systemBlue" action={() => {
     void feedback(async () => { await Widget.preview({ family: 'systemMedium' }); return null })
   }} />
 }
@@ -60,7 +60,7 @@ function SettingsPage({ settings, setSettings, close }: { settings: Appearance; 
           </Picker>
         </HStack>
       </Section>
-      <Section header={<Text>预览小组件</Text>}><PreviewButton /></Section>
+      <Section header={<Text>预览组件</Text>}><PreviewButton /></Section>
       <Section header={<Text>数据</Text>}>
         <Button title="刷新假日缓存" action={() => { void feedback(async () => {
           const today = chinaToday(), years = Array.from(new Set([...layoutDates(today, 'month', settings.weekStart), ...layoutDates(today, 'week', settings.weekStart)].map(d => d.year)))

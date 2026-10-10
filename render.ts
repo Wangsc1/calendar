@@ -26,7 +26,8 @@ function badge(d: CivilDate, holidays: HolidayResult[], x: number, y: number, se
     ? `<circle data-role="holiday" cx="${x}" cy="${y - 3}" r="2.5" fill="${color}"/>`
     : text(x, y, day.isOffDay ? '休' : '班', size, color, weight, stroke)
 }
-export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: LayoutMode, settings: Appearance, width: number, height: number): string {
+export type DateLabel = { x: number; y: number; size: number; text: string; color: string }
+export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: LayoutMode, settings: Appearance, width: number, height: number, dateLabels?: DateLabel[]): string {
   const w = Math.max(110, width), h = Math.max(110, height), f = settings.fonts[mode]
   const days = layoutDates(today, mode, settings.weekStart)
   const background = mode === 'day'
@@ -78,7 +79,9 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       // 中号与大号使用同一红底尺寸和定位规则。
       const radius = Math.max(fitRadius, size * .95)
       if (current) out.push(todayShape(x, centerY, radius, settings))
-      out.push(text(x, y, String(d.day), size, color, 600))
+      // 有收集器时由原生Text绘制日期数字，与App首页同字体同字重；否则保留SVG后备。
+      if (dateLabels) dateLabels.push({ x, y, size, text: String(d.day), color })
+      else out.push(text(x, y, String(d.day), size, color, 600))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${lineY}" x2="${x + lineHalf}" y2="${lineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。

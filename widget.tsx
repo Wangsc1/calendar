@@ -1,7 +1,7 @@
-import { HStack, Spacer, SVG, Text, VStack, Widget, gradient } from 'scripting'
+import { HStack, Spacer, SVG, Text, VStack, ZStack, Widget, gradient } from 'scripting'
 import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout, WEEKDAY_NAMES } from './calendar'
 import { holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
-import { lightSVG, renderCalendarSVG } from './render'
+import { DateLabel, lightSVG, renderCalendarSVG } from './render'
 
 async function run() {
   const today = chinaToday(), settings = readAppearance(), mode = widgetLayout(Widget.family)
@@ -50,9 +50,19 @@ async function run() {
     return
   }
   const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - 32)
-  const code = renderCalendarSVG(today, holidays, mode, settings, width, height)
+  const labels: DateLabel[] = []
+  const code = renderCalendarSVG(today, holidays, mode, settings, width, height, labels)
+  // SVG坐标与ZStack同尺寸；文字基线换算为中心点（系统数字字形约0.35倍字号）。
+  const dayColor = (c: string) => c === '#ffffff' ? '#ffffff'
+    : c === '#626269' ? { light: '#c7c7cc', dark: '#626269' }
+    : c === '#94949a' ? { light: '#8e8e93', dark: '#94949a' }
+    : { light: '#1c1c1e', dark: '#f7f7f8' }
   Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground={{ light: '#ffffff', dark: '#28282a' }}>
-    <SVG code={{ light: lightSVG(code), dark: code }} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
+    <ZStack frame={{ width, height }}>
+      <SVG code={{ light: lightSVG(code), dark: code }} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
+      {labels.map(l => <Text font={l.size} fontWeight="semibold" foregroundStyle={dayColor(l.color)} lineLimit={1}
+        fixedSize position={{ x: l.x, y: l.y - l.size * .35 }}>{l.text}</Text>)}
+    </ZStack>
   </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
 }
 run()

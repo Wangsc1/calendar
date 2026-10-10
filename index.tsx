@@ -36,7 +36,7 @@ function SettingsPage({ settings, setSettings, close }: { settings: Appearance; 
     <List navigationTitle="日历设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
       scrollContentBackground="hidden" background="systemGroupedBackground"
       toolbar={{ cancellationAction: <Button title="完成" action={close} /> }}>
-      <Section header={<HStack><Text>高级</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
+      <Section header={<HStack><Text>设置</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
         <Picker label={<RowLabel title="每周首日" symbol="calendar" color="systemOrange" />} pickerStyle="menu"
           value={settings.weekStart} onChanged={(value: number) => {
             if (persist({ ...settings, weekStart: value }, setSettings)) {

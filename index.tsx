@@ -1,4 +1,4 @@
-import { Button, Circle, HStack, Image, List, Navigation, NavigationStack, Picker, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
+import { Button, Circle, HStack, Image, List, Navigation, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
 import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
@@ -86,16 +86,17 @@ function DayCell({ d, month, today, selected, holidays, settings, onSelect }: {
   const label = isToday || info.lunarDay === 1 ? info.lunarLabel : info.label
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
   const shape = settings.todayShape === 'circle'
-    ? <Circle fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 40, height: 40 }} />
-    : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 40, height: 40 }} />
+    ? <Circle fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
+    : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
   return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={isToday ? 1 : dim}
     background={isToday || isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
-    // 休/班与小组件一致：所有日期都贴在40点红底的右上外缘，保留约1点间隙。
+    // 休/班与小组件一致：所有日期都贴在42点红底的右上外缘，保留约1点间隙。
     overlay={mark ? { alignment: 'center', content: <Text font={9} fontWeight="heavy" foregroundStyle={markColor}
-      offset={{ x: 20, y: -19 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
+      offset={{ x: 21, y: -18 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
     <Text font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
     <Text font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
-      underline={info.lunarDay === 1 ? (isToday ? 'white' : '#e74748') : undefined}>{label}</Text>
+      overlay={info.lunarDay === 1 ? { alignment: 'bottom', content: <Rectangle fill={isToday ? 'white' : '#e74748'}
+        frame={{ width: 12, height: 2 }} offset={{ x: 0, y: 3 }} /> } : undefined}>{label}</Text>
   </VStack>
 }
 function HomePage() {

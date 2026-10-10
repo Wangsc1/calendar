@@ -66,7 +66,8 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const color = current ? '#ffffff' : outside ? '#626269' : isWeekend(info.weekday) ? '#94949a' : '#f7f7f8'
       // 大号日期/农历字号、粗细及间距与中号一致。
       const wf = settings.fonts.week
-      const size = Math.min(wf.date + 1, rowGap * .58, col * .62), lunarSize = Math.min(wf.lunar, rowGap * .27)
+      // 日期数字与App首页一致：18点、半粗体（600），不叠印加粗。
+      const size = Math.min(18, rowGap * .58, col * .62), lunarSize = Math.min(wf.lunar, rowGap * .27)
       const label = current || info.lunarDay === 1 ? info.lunarLabel : info.label
       const labelY = y + lunarSize + 6
       // 今日红底以日期顶部到农历下划线的整体为中心；半径刚好包住下划线。
@@ -77,7 +78,7 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       // 中号与大号使用同一红底尺寸和定位规则。
       const radius = Math.max(fitRadius, size * .95)
       if (current) out.push(todayShape(x, centerY, radius, settings))
-      out.push(text(x, y, String(d.day), size, color, 900, .1))
+      out.push(text(x, y, String(d.day), size, color, 600))
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${lineY}" x2="${x + lineHalf}" y2="${lineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。

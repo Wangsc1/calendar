@@ -49,7 +49,8 @@ async function run() {
     </VStack>, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
     return
   }
-  const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - 32)
+  // 中号上下外边距由各16点缩为各12点，多出的高度分给日期行距。
+  const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - (mode === 'week' ? 24 : 32))
   const labels: DateLabel[] = []
   const code = renderCalendarSVG(today, holidays, mode, settings, width, height, labels)
   // SVG坐标与ZStack同尺寸；文字基线换算为中心点（系统数字字形约0.35倍字号）。

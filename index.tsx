@@ -37,7 +37,7 @@ function SettingsPage({ settings, setSettings, close }: { settings: Appearance; 
       scrollContentBackground="hidden" background="systemGroupedBackground"
       toolbar={{ cancellationAction: <Button title="完成" action={close} /> }}>
       <Section header={<HStack><Text>设置</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
-        <Picker label={<RowLabel title="每周首日" symbol="calendar" color="systemOrange" />} pickerStyle="menu"
+        <Picker label={<RowLabel title="每周首日" symbol="calendar" color="systemOrange" />} pickerStyle="menu" tint="systemGray"
           value={settings.weekStart} onChanged={(value: number) => {
             if (persist({ ...settings, weekStart: value }, setSettings)) {
               void feedback(async () => '已保存并请求刷新；iOS刷新可能延迟。')
@@ -61,8 +61,8 @@ function SettingsPage({ settings, setSettings, close }: { settings: Appearance; 
         </HStack>
       </Section>
       <Section header={<Text>预览组件</Text>}><PreviewButton /></Section>
-      <Section header={<Text>数据</Text>}>
-        <Button title="刷新假日缓存" action={() => { void feedback(async () => {
+      <Section header={<Text>假日数据</Text>}>
+        <Button title="刷新缓存" action={() => { void feedback(async () => {
           const today = chinaToday(), years = Array.from(new Set([...layoutDates(today, 'month', settings.weekStart), ...layoutDates(today, 'week', settings.weekStart)].map(d => d.year)))
           const results = await Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO, true)))
           Widget.reloadAll()

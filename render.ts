@@ -55,10 +55,11 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     out.push(left(444, lunarInfo, 44))
   } else {
     const month = mode === 'month', col = w / 7
-    const headerY = month ? 50 : 15, firstY = month ? 76 : 46
+    const headerY = month ? 46 : 15, firstY = month ? 72 : 46
     // 大号：最后一行农历底部与底部日期保留约10点，余下高度全部分给行距。
     const rowGap = month ? (h - 43 - firstY) / 5 : h - 43 - firstY
-    if (month) out.push(text(w / 2, 22, `${today.year}年${today.month}月`, f.today, '#dddde1', 600))
+    // 大号标题加大；基线使标题上方留白与底部日期下方留白相同（中文字形约上沿0.88、下沿0.12倍字号）。
+    if (month) out.push(text(w / 2, 3 - f.today * .12 + 17 * .88, `${today.year}年${today.month}月`, 17, '#dddde1', 600))
     weekOrder(settings.weekStart).forEach((day, index) => {
       out.push(text(col * (index + .5), headerY, `周${WEEKDAY_NAMES[day]}`, Math.min(f.weekday, (col - 4) / 2), isWeekend(day) ? '#94949a' : '#f3f3f5'))
     })

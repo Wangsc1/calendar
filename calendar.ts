@@ -49,18 +49,13 @@ export function readAppearance(): Appearance {
 export function saveAppearance(value: Appearance): boolean {
   try { return Storage.set(APPEARANCE_KEY, normalizeAppearance(value)) } catch { return false }
 }
-export function resetAppearance(): boolean { return saveAppearance(defaultAppearance()) }
-export function readWeekStart(): number { return readAppearance().weekStart }
-export function saveWeekStart(value: number): boolean {
-  return normalizeWeekStart(value) === value && saveAppearance({ ...readAppearance(), weekStart: value })
-}
 export function weekOrder(start = DEFAULT_WEEK_START): number[] {
   return Array.from({ length: 7 }, (_, i) => (normalizeWeekStart(start) + i) % 7)
 }
 export function isWeekend(day: number): boolean { return day === 0 || day === 6 }
 export type CivilDate = { year: number; month: number; day: number }
 export type DayInfo = CivilDate & {
-  key: string; weekday: number; lunarMonth: number; lunarDay: number
+  key: string; weekday: number; lunarDay: number
   lunarLabel: string; festivals: string[]; term: string; label: string; footer: string
 }
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -110,7 +105,7 @@ export function dayInfo(d: CivilDate): DayInfo {
   const lunarLabel = day === 1 ? lunarMonth : l.getDayInChinese()
   // 格子优先传统/公历节日，其次节气，再次农历；首页完整列表保留同日所有信息。
   const label = festivals[0] || term || lunarLabel
-  return { ...d, key: dateKey(d), weekday: weekday(d), lunarMonth: m, lunarDay: day,
+  return { ...d, key: dateKey(d), weekday: weekday(d), lunarDay: day,
     lunarLabel, festivals, term, label,
     footer: `${l.getYearInGanZhi()}${l.getYearShengXiao()}年 ${lunarMonth}${l.getDayInChinese()}` }
 }

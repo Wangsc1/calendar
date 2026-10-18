@@ -1,4 +1,4 @@
-import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isWeekend, Appearance, LayoutMode, defaultAppearance, MIN_YEAR, MAX_YEAR } from './calendar'
+import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isWeekend, Appearance, MIN_YEAR, MAX_YEAR } from './calendar'
 import { HolidayResult, holidayOn } from './holidays'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function text(x: number, y: number, s: string, size: number, color = '#f7f7f8', weight = 400, stroke = 0): string {
@@ -27,32 +27,13 @@ function badge(d: CivilDate, holidays: HolidayResult[], x: number, y: number, se
     : text(x, y, day.isOffDay ? '休' : '班', size, color, weight, stroke)
 }
 export type DateLabel = { x: number; y: number; size: number; text: string; color: string }
-export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: LayoutMode, settings: Appearance, width: number, height: number, dateLabels?: DateLabel[]): string {
+export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: 'week' | 'month', settings: Appearance, width: number, height: number, dateLabels: DateLabel[]): string {
   const w = Math.max(110, width), h = Math.max(110, height), f = settings.fonts[mode]
   const days = layoutDates(today, mode, settings.weekStart)
-  const background = mode === 'day'
-    ? `<defs><linearGradient id="small-background" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#363636"/><stop offset="1" stop-color="#262626"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#small-background)"/>`
-    : `<rect width="${w}" height="${h}" rx="16" fill="#28282a"/>`
+  const background = `<rect width="${w}" height="${h}" rx="16" fill="#28282a"/>`
   const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${background}<g font-family="-apple-system, PingFang SC, Helvetica, sans-serif">`]
   if (days.some(d => d.year < MIN_YEAR || d.year > MAX_YEAR)) {
     out.push(text(w / 2, h / 2, '农历支持1901—2099年', fit(12, '农历支持1901—2099年', w - 12)))
-  } else if (mode === 'day') {
-    // IMG_4558右侧491方卡为新基准，使用完整Widget尺寸，不沿用旧126内卡校准。
-    // 固定设计与旧Storage.fonts.day无关；只有长文本按可用宽度收缩。
-    const i = dayInfo(today), x = w * 50 / 491, available = w * 391 / 491
-    const scale = Math.min(w, h) / 491
-    const left = (referenceY: number, value: string, referenceSize: number, color = '#ffffff', weight = 400) =>
-      text(x, h * referenceY / 491, value, fit(referenceSize * scale, value, available), color, weight)
-        .replace('text-anchor="middle"', 'text-anchor="start"')
-    out.push(left(96, `周${WEEKDAY_NAMES[i.weekday]}`, 60, '#e74748', 500))
-    out.push(left(253, String(today.day), 150))
-    out.push(badge(today, holidays, w * .88, h * .16, settings))
-    const event = i.festivals.join(' / ') || i.term
-    if (event) out.push(left(282, event, 20))
-    const [yearInfo, lunarInfo] = i.footer.split(' ')
-    out.push(left(334, `${today.year}年${today.month}月`, 44))
-    out.push(left(389, yearInfo, 44))
-    out.push(left(444, lunarInfo, 44))
   } else {
     const month = mode === 'month', col = w / 7
     const headerY = month ? 46 : 15, firstY = month ? 72 : 46
@@ -82,9 +63,8 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       // 中号与大号使用同一红底尺寸和定位规则。
       const radius = Math.max(fitRadius, circleSize * .95)
       if (current) out.push(todayShape(x, centerY, radius, settings))
-      // 有收集器时由原生Text绘制日期数字，与App首页同字体同字重；否则保留SVG后备。
-      if (dateLabels) dateLabels.push({ x, y, size, text: String(d.day), color })
-      else out.push(text(x, y, String(d.day), size, color, 600))
+      // 由原生Text绘制日期数字，与App首页同字体同字重。
+      dateLabels.push({ x, y, size, text: String(d.day), color })
       out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${lineY}" x2="${x + lineHalf}" y2="${lineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
@@ -107,11 +87,4 @@ const LIGHT_COLORS: Record<string, string> = {
 }
 export function lightSVG(code: string): string {
   return code.replace(/#28282a|#f7f7f8|#f3f3f5|#dddde1|#94949a|#626269/g, c => LIGHT_COLORS[c])
-}
-// 保留已有模块调用签名；桌面与原生Widget预览均执行同一渲染入口。
-export function calendarSVG(today: CivilDate, holidays: HolidayResult[], width = 306, height = 126, weekStart = 1): string {
-  return renderCalendarSVG(today, holidays, 'week', { ...defaultAppearance(), weekStart }, width, height)
-}
-export function compactSVG(today: CivilDate, holidays: HolidayResult[]): string {
-  return renderCalendarSVG(today, holidays, 'day', defaultAppearance(), 126, 126)
 }

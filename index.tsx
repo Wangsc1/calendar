@@ -124,7 +124,7 @@ function HomePage() {
   return <NavigationStack>
     <ScrollView background="systemBackground"
       toolbar={{
-        cancellationAction: <Button title="关闭" action={dismiss} />,
+        cancellationAction: <Button title="" systemImage="xmark" action={dismiss} />,
         topBarTrailing: <Button title="" systemImage="ellipsis.circle" action={() => setShowSettings(true)}
           sheet={{ isPresented: showSettings, onChanged: setShowSettings,
             content: <SettingsPage settings={settings} setSettings={setSettings} close={() => setShowSettings(false)} /> }} />,

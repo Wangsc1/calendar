@@ -126,7 +126,7 @@ function HomePage() {
       toolbar={{
         cancellationAction: <Button title="" systemImage="xmark" action={dismiss} />,
         topBarTrailing: <Button title="" systemImage="ellipsis.circle" action={() => setShowSettings(true)}
-          sheet={{ isPresented: showSettings, onChanged: setShowSettings,
+          fullScreenCover={{ isPresented: showSettings, onChanged: setShowSettings,
             content: <SettingsPage settings={settings} setSettings={setSettings} close={() => setShowSettings(false)} /> }} />,
       }}>
       <VStack alignment="leading" spacing={18} padding={{ leading: 16, trailing: 16, top: 8, bottom: 24 }}>
@@ -162,7 +162,7 @@ function HomePage() {
   </NavigationStack>
 }
 async function run() {
-  await Navigation.present({ element: <HomePage /> })
+  await Navigation.present({ element: <HomePage />, modalPresentationStyle: 'fullScreen' })
   Script.exit()
 }
 run()

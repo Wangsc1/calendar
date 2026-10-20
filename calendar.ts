@@ -94,10 +94,13 @@ export function dayInfo(d: CivilDate): DayInfo {
   const m = l.getMonth(), day = l.getDay()
   const festivals: string[] = []
   if (m > 0 && traditional[`${m}-${day}`]) festivals.push(traditional[`${m}-${day}`])
-  // 不固定腊月三十：下一天农历年份变化才是除夕（兼容腊月廿九）。
-  const next = addDays(d, 1)
-  const nl = Solar.fromYmd(next.year, next.month, next.day).getLunar()
-  if (l.getYear() !== nl.getYear()) festivals.push('除夕')
+  // 除夕只可能是腊月廿九或三十，其他日期无需额外转换次日农历。
+  // 仍以次日农历年份变化判定，不固定腊月三十（兼容腊月廿九）。
+  if (m === 12 && day >= 29) {
+    const next = addDays(d, 1)
+    const nl = Solar.fromYmd(next.year, next.month, next.day).getLunar()
+    if (l.getYear() !== nl.getYear()) festivals.push('除夕')
+  }
   const sf = solarFestivals[`${d.month}-${d.day}`]
   if (sf) festivals.push(sf)
   const term = l.getJieQi()

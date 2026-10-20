@@ -1,4 +1,4 @@
-import { Button, Circle, HStack, Image, List, Navigation, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
+import { Button, Circle, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
 import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
@@ -31,11 +31,9 @@ function PreviewButton() {
     void feedback(async () => { await Widget.preview({ family: 'systemMedium' }); return null })
   }} />
 }
-function SettingsPage({ settings, setSettings, close }: { settings: Appearance; setSettings: (value: Appearance) => void; close: () => void }) {
-  return <NavigationStack>
-    <List navigationTitle="日历设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
-      scrollContentBackground="hidden" background="systemGroupedBackground"
-      toolbar={{ cancellationAction: <Button title="" systemImage="chevron.left" action={close} /> }}>
+function SettingsPage({ settings, setSettings }: { settings: Appearance; setSettings: (value: Appearance) => void }) {
+  return <List navigationTitle="日历设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
+      scrollContentBackground="hidden" background="systemGroupedBackground">
       <Section header={<HStack><Text>设置</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
         <Picker label={<RowLabel title="每周首日" symbol="calendar" color="systemOrange" />} pickerStyle="menu" tint="systemGray"
           value={settings.weekStart} onChanged={(value: number) => {
@@ -70,7 +68,6 @@ function SettingsPage({ settings, setSettings, close }: { settings: Appearance; 
         }) }} />
       </Section>
     </List>
-  </NavigationStack>
 }
 const shiftMonth = (d: CivilDate, n: number): CivilDate => {
   const index = d.year * 12 + d.month - 1 + n
@@ -106,7 +103,6 @@ function HomePage() {
   const [view, setView] = useState<CivilDate>({ year: today.year, month: today.month, day: 1 })
   const [selected, setSelected] = useState<CivilDate>(today)
   const [holidays, setHolidays] = useState<HolidayResult[]>([])
-  const [showSettings, setShowSettings] = useState(false)
   const days = monthGrid(view, settings.weekStart)
   useEffect(() => {
     let cancelled = false
@@ -125,9 +121,9 @@ function HomePage() {
     <ScrollView background="systemBackground"
       toolbar={{
         cancellationAction: <Button title="" systemImage="xmark" action={dismiss} />,
-        topBarTrailing: <Button title="" systemImage="ellipsis.circle" action={() => setShowSettings(true)}
-          fullScreenCover={{ isPresented: showSettings, onChanged: setShowSettings,
-            content: <SettingsPage settings={settings} setSettings={setSettings} close={() => setShowSettings(false)} /> }} />,
+        topBarTrailing: <NavigationLink destination={<SettingsPage settings={settings} setSettings={setSettings} />}>
+          <Image systemName="ellipsis.circle" />
+        </NavigationLink>,
       }}>
       <VStack alignment="leading" spacing={18} padding={{ leading: 16, trailing: 16, top: 8, bottom: 24 }}>
         <Text font={34} fontWeight="bold" foregroundStyle="label" onTapGesture={() => {

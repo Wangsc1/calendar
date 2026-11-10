@@ -1,10 +1,12 @@
-import { HStack, Spacer, SVG, Text, VStack, ZStack, Widget, gradient } from 'scripting'
+import { HStack, RoundedRectangle, Spacer, SVG, Text, VStack, ZStack, Widget, gradient } from 'scripting'
 import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout, WEEKDAY_NAMES } from './calendar'
 import { holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { DateLabel, lightSVG, renderCalendarSVG } from './render'
+import { readShifts, shiftOn } from './shifts'
 
 async function run() {
   const today = chinaToday(), settings = readAppearance(), mode = widgetLayout(Widget.family)
+  const shifts = readShifts().config, shift = shiftOn(today, shifts)
   const range = layoutDates(today, mode, settings.weekStart)
   if (range.some(d => d.year < MIN_YEAR || d.year > MAX_YEAR)) {
     Widget.present(<Text widgetBackground={{ light: '#ffffff', dark: '#28282a' }}>农历支持1901—2099年；当前范围超出边界</Text>)
@@ -14,7 +16,7 @@ async function run() {
   const holidays = await Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO)))
   if (Widget.family.startsWith('accessory')) {
     const i = dayInfo(today)
-    Widget.present(<Text font={11}>{`${today.month}月${today.day}日 ${i.label} ${i.footer}`}</Text>, {
+    Widget.present(<Text font={11}>{`${today.month}月${today.day}日 ${i.label} ${i.footer}${shift ? ' · ' + shift.name : ''}`}</Text>, {
       reloadPolicy: { policy: 'after', date: nextChinaMidnight() },
     })
     return
@@ -27,6 +29,8 @@ async function run() {
     const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
     // 预览实测内容贴边，按右侧参考卡约10.2%内边距显式留白。
     const inset = Math.round(Math.min(size.width, size.height) * 0.102)
+    const dateText = <Text font={76} fontWeight="regular" foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.7}
+      frame={{ height: 55 }} padding={{ top: 4, bottom: 4 }}>{String(today.day)}</Text>
     Widget.present(<VStack alignment="leading" spacing={0}
       padding={{ top: Math.round(inset * 0.8), bottom: Math.round(inset * 0.8), leading: inset, trailing: inset }}
       frame={{ maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' }}
@@ -38,8 +42,11 @@ async function run() {
         {mark ? <Text font={settings.holidayStyle === 'dot' ? 10 : 12} fontWeight="bold" foregroundStyle={markColor}>
           {settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> : null}
       </HStack>
-      <Text font={76} fontWeight="regular" foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.7}
-        frame={{ height: 55 }} padding={{ top: 4, bottom: 4 }}>{String(today.day)}</Text>
+      {shift ? <HStack spacing={4}>
+        {dateText}<Spacer />
+        <Text font={9} fontWeight="medium" foregroundStyle="white" lineLimit={1} minScaleFactor={0.6}
+          frame={{ width: 32, height: 15 }} background={<RoundedRectangle cornerRadius={3} fill={shift.color} />}>{shift.name}</Text>
+      </HStack> : dateText}
       <VStack alignment="leading" spacing={0}>
         <Text font={19} foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>
         <Text font={19} foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.75}>{yearInfo}</Text>
@@ -52,7 +59,7 @@ async function run() {
   // 中号上下外边距由各16点缩为各12点，多出的高度分给日期行距。
   const width = Math.max(110, size.width - 32), height = Math.max(110, size.height - (mode === 'week' ? 24 : 32))
   const labels: DateLabel[] = []
-  const code = renderCalendarSVG(today, holidays, mode, settings, width, height, labels)
+  const code = renderCalendarSVG(today, holidays, mode, settings, width, height, labels, shifts)
   // SVG坐标与ZStack同尺寸；文字基线换算为中心点（系统数字字形约0.35倍字号）。
   const dayColor = (c: string) => c === '#ffffff' ? '#ffffff'
     : c === '#626269' ? { light: '#c7c7cc', dark: '#626269' }

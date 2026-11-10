@@ -2,6 +2,8 @@ import { Button, Circle, HStack, Image, List, Navigation, NavigationLink, Naviga
 import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
+import { ShiftRead, ShiftSettings, readShifts, shiftOn } from './shifts'
+import { ShiftSettingsPage } from './shift-settings'
 
 let busy = false
 async function feedback(action: () => Promise<string | null>) {
@@ -31,7 +33,7 @@ function PreviewButton() {
     void feedback(async () => { await Widget.preview({ family: 'systemMedium' }); return null })
   }} />
 }
-function SettingsPage({ settings, setSettings }: { settings: Appearance; setSettings: (value: Appearance) => void }) {
+function SettingsPage({ settings, setSettings, shiftState, setShiftState }: { settings: Appearance; setSettings: (value: Appearance) => void; shiftState: ShiftRead; setShiftState: (value: ShiftRead) => void }) {
   return <List navigationTitle="日历设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
       scrollContentBackground="hidden" background="systemGroupedBackground">
       <Section header={<HStack><Text>设置</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
@@ -58,6 +60,11 @@ function SettingsPage({ settings, setSettings }: { settings: Appearance; setSett
           </Picker>
         </HStack>
       </Section>
+      <Section header={<Text>倒班</Text>}>
+        <NavigationLink destination={<ShiftSettingsPage state={shiftState} onSaved={setShiftState} />}>
+          <RowLabel title="倒班设置" symbol="arrow.triangle.2.circlepath" color="systemGreen" />
+        </NavigationLink>
+      </Section>
       <Section header={<Text>预览组件</Text>}><PreviewButton /></Section>
       <Section header={<Text>假日数据</Text>}>
         <Button title="刷新缓存" action={() => { void feedback(async () => {
@@ -73,11 +80,11 @@ const shiftMonth = (d: CivilDate, n: number): CivilDate => {
   const index = d.year * 12 + d.month - 1 + n
   return { year: Math.floor(index / 12), month: index % 12 + 1, day: 1 }
 }
-function DayCell({ d, month, today, selected, holidays, settings, onSelect }: {
-  d: CivilDate; month: number; today: string; selected: string; holidays: HolidayResult[]; settings: Appearance; onSelect: (d: CivilDate) => void
+function DayCell({ d, month, today, selected, holidays, settings, shifts, onSelect }: {
+  d: CivilDate; month: number; today: string; selected: string; holidays: HolidayResult[]; settings: Appearance; shifts: ShiftSettings; onSelect: (d: CivilDate) => void
 }) {
   const info = dayInfo(d), isToday = info.key === today, isSelected = info.key === selected && !isToday
-  const outside = d.month !== month, mark = holidayOn(d, holidays)
+  const outside = d.month !== month, mark = holidayOn(d, holidays), shift = shiftOn(d, shifts)
   const dim = outside ? 0.35 : isWeekend(info.weekday) ? 0.55 : 1
   const color = isToday ? 'white' : 'label'
   const label = isToday || info.lunarDay === 1 ? info.lunarLabel : info.label
@@ -94,6 +101,8 @@ function DayCell({ d, month, today, selected, holidays, settings, onSelect }: {
     <Text font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
       overlay={info.lunarDay === 1 ? { alignment: 'bottom', content: <Rectangle fill={isToday ? 'white' : '#e74748'}
         frame={{ width: 12, height: 2 }} offset={{ x: 0, y: 3 }} /> } : undefined}>{label}</Text>
+    {shift ? <Text font={8} fontWeight="medium" foregroundStyle="white" lineLimit={1} minScaleFactor={0.6}
+      frame={{ maxWidth: 'infinity', height: 11 }} background={<RoundedRectangle cornerRadius={3} fill={shift.color} />}>{shift.name}</Text> : null}
   </VStack>
 }
 function HomePage() {
@@ -103,6 +112,7 @@ function HomePage() {
   const [view, setView] = useState<CivilDate>({ year: today.year, month: today.month, day: 1 })
   const [selected, setSelected] = useState<CivilDate>(today)
   const [holidays, setHolidays] = useState<HolidayResult[]>([])
+  const [shiftState, setShiftState] = useState(readShifts())
   const days = monthGrid(view, settings.weekStart)
   useEffect(() => {
     let cancelled = false
@@ -115,13 +125,13 @@ function HomePage() {
     if (next.year < MIN_YEAR || next.year > MAX_YEAR) return
     setView(next)
   }
-  const info = dayInfo(selected)
+  const info = dayInfo(selected), selectedShift = shiftOn(selected, shiftState.config)
   const rows = Array.from({ length: 6 }, (_, r) => days.slice(r * 7, r * 7 + 7))
   return <NavigationStack>
     <ScrollView background="systemBackground"
       toolbar={{
         cancellationAction: <Button title="" systemImage="xmark" action={dismiss} />,
-        topBarTrailing: <NavigationLink destination={<SettingsPage settings={settings} setSettings={setSettings} />}>
+        topBarTrailing: <NavigationLink destination={<SettingsPage settings={settings} setSettings={setSettings} shiftState={shiftState} setShiftState={setShiftState} />}>
           <Image systemName="ellipsis.circle" />
         </NavigationLink>,
       }}>
@@ -149,10 +159,10 @@ function HomePage() {
           </HStack>
           {rows.map(row => <HStack spacing={0} frame={{ maxWidth: 'infinity' }}>
             {row.map(d => <DayCell d={d} month={view.month} today={todayKey} selected={dateKey(selected)}
-              holidays={holidays} settings={settings} onSelect={value => setSelected(value)} />)}
+              holidays={holidays} settings={settings} shifts={shiftState.config} onSelect={value => setSelected(value)} />)}
           </HStack>)}
         </VStack>
-        <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`}</Text>
+        <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}${selectedShift ? ' · 倒班：' + selectedShift.name : ''}`}</Text>
       </VStack>
     </ScrollView>
   </NavigationStack>

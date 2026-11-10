@@ -1,5 +1,6 @@
 import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isWeekend, Appearance, MIN_YEAR, MAX_YEAR } from './calendar'
 import { HolidayResult, holidayOn } from './holidays'
+import { ShiftSettings, shiftOn } from './shifts'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function text(x: number, y: number, s: string, size: number, color = '#f7f7f8', weight = 400, stroke = 0): string {
   const one = (dx: number, dy: number) => `<text x="${x + dx}" y="${y + dy}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(s)}</text>`
@@ -27,7 +28,7 @@ function badge(d: CivilDate, holidays: HolidayResult[], x: number, y: number, se
     : text(x, y, day.isOffDay ? '休' : '班', size, color, weight, stroke)
 }
 export type DateLabel = { x: number; y: number; size: number; text: string; color: string }
-export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: 'week' | 'month', settings: Appearance, width: number, height: number, dateLabels: DateLabel[]): string {
+export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: 'week' | 'month', settings: Appearance, width: number, height: number, dateLabels: DateLabel[], shifts?: ShiftSettings): string {
   const w = Math.max(110, width), h = Math.max(110, height), f = settings.fonts[mode]
   const days = layoutDates(today, mode, settings.weekStart)
   const background = `<rect width="${w}" height="${h}" rx="16" fill="#28282a"/>`
@@ -65,8 +66,19 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       if (current) out.push(todayShape(x, centerY, radius, settings))
       // 由原生Text绘制日期数字，与App首页同字体同字重。
       dateLabels.push({ x, y, size, text: String(d.day), color })
-      out.push(text(x, labelY, label, fit(lunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
-      if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${lineY}" x2="${x + lineHalf}" y2="${lineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
+      const shift = shiftOn(d, shifts)
+      // 开启排班时仅收紧格内农历间距，为第三行留白；日期、红底、休班及整体尺寸不变。
+      const displayLunarSize = shift ? Math.min(lunarSize, 8, rowGap * .2) : lunarSize
+      const displayLabelY = shift ? y + Math.min(displayLunarSize + 2, rowGap * .24) : labelY
+      out.push(text(x, displayLabelY, label, fit(displayLunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
+      const displayLineY = shift ? displayLabelY + 2 : lineY
+      if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${displayLineY}" x2="${x + lineHalf}" y2="${displayLineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
+      if (shift) {
+        const tagWidth = col - 10, tagTop = y + Math.min(15, rowGap * .34), tagHeight = Math.min(9, rowGap * .22)
+        const tagFont = Math.min(7, tagHeight * .8)
+        out.push(`<g data-role="shift" data-date="${info.key}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${shift.color}"/>`)
+        out.push(text(x, tagTop + tagHeight * .8, shift.name, fit(tagFont, shift.name, tagWidth - 4), '#ffffff', 600), '</g>')
+      }
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
       // 所有日期统一使用今日红底外缘作为休/班定位基准，非今天不绘制红底。
       const half = 7.5 / 2, gap = 1, corner = (radius + gap) * Math.SQRT1_2

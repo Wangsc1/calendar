@@ -19,7 +19,7 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
       {(['normal', 'transparent'] as ShiftStyle[]).map(style => <Button buttonStyle="plain" action={() => onChanged({ style })}>
         <HStack spacing={4}>
           <Text foregroundStyle="systemGreen">{(shift.style ?? 'normal') === style ? '◉' : '○'}</Text>
-          <ShiftBadge shift={{ ...shift, style }} text={style === 'normal' ? '普通' : '透明'} width={64} height={24} font={13} />
+          <Text>{style === 'normal' ? '普通' : '透明'}</Text>
         </HStack>
       </Button>)}
     </HStack>
@@ -31,18 +31,18 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
       <Text font={12} foregroundStyle="secondaryLabel">原颜色</Text>
       <ColorSwatch color={shift.color} selected onSelect={() => {}} />
     </HStack> : null}
-    <HStack spacing={8}>
-      <Text font={12} foregroundStyle="secondaryLabel">预览</Text>
-      <ShiftBadge shift={shift} width={76} height={22} font={13} />
-    </HStack>
   </VStack>
 }
+
+type DeleteRequest = { shift: Shift; handled: boolean }
 
 export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; onSaved: (value: ShiftRead) => void }) {
   const [draft, applyDraft] = useState<ShiftSettings>(editor.draft)
   const [dateText, applyDate] = useState(editor.dateText)
   const [notice, setNotice] = useState(editor.saved.error || '')
-  const [deletion] = useState({ pending: false })
+  const [deletion] = useState<{ current: DeleteRequest | null; presented: boolean }>({ current: null, presented: false })
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
+  const [deletePresented, setDeletePresented] = useState(false)
   const [datePicker] = useState({ active: false })
   // 更新稳定会话后再重绘；旧onDisappear闭包也会读取最新输入，不用effect清理保存。
   const setDraft = (value: ShiftSettings) => { editor.draft = value; applyDraft(value) }
@@ -50,24 +50,30 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
   const editShift = (id: string, update: Partial<Pick<Shift, 'name' | 'color' | 'style'>>) => {
     setDraft({ ...editor.draft, shifts: editor.draft.shifts.map(s => s.id === id ? { ...s, ...update } : s) })
   }
-  const deleteShift = async (shift: Shift) => {
-    // 单次确认；按对象身份拒绝已删除/重建的旧行回调，不把原生删除与异步确认混成onDelete。
-    if (deletion.pending || !editor.visible || !editor.draft.shifts.includes(shift)) return
-    deletion.pending = true
-    try {
-      if (editor.draft.shifts.length <= 1) {
-        await Dialog.alert({ title: '保留一个班次', message: '至少需保留一个班次。' }); return
-      }
-      const ok = await Dialog.confirm({ title: `删除“${shift.name}”？`, message: '会移除循环中该班次的所有位置；若被引用，需重新选择基准位置。返回时自动保存。', confirmLabel: '删除', cancelLabel: '取消' })
-      if (!ok || !editor.visible || !editor.draft.shifts.includes(shift)) return
-      const current = editor.draft, next = removeShift(current, shift.id)
-      if (!next.cycle.length) {
-        await Dialog.alert({ title: '无法删除班次', message: '该班次占据全部循环位置，删除后循环将为空。班次和原排班未改动。' }); return
-      }
-      if (next !== current) setDraft(next)
-    } catch {
-      setNotice('无法完成删除确认，班次未删除，请重试。')
-    } finally { deletion.pending = false }
+  const showDeleteConfirmation = (presented: boolean) => {
+    deletion.presented = presented
+    setDeletePresented(presented)
+  }
+  const requestDelete = (shift: Shift) => {
+    if (deletion.presented || !editor.visible || !editor.draft.shifts.includes(shift)) return
+    if (editor.draft.shifts.length <= 1) { setNotice('至少需保留一个班次。'); return }
+    const request: DeleteRequest = { shift, handled: false }
+    deletion.current = request
+    setDeleteRequest(request)
+    showDeleteConfirmation(true)
+  }
+  const finishDelete = (request: DeleteRequest, confirmed: boolean) => {
+    // 动作保留请求快照，不依赖原生onChanged(false)与按钮动作的先后顺序。
+    if (request.handled || deletion.current !== request) return
+    request.handled = true
+    showDeleteConfirmation(false)
+    if (!confirmed || !editor.visible || !editor.draft.shifts.includes(request.shift)) return
+    if (editor.draft.shifts.length <= 1) { setNotice('至少需保留一个班次。'); return }
+    const current = editor.draft, next = removeShift(current, request.shift.id)
+    if (!next.cycle.length) {
+      setNotice('该班次占据全部循环位置，删除后循环将为空。班次和原排班未改动。'); return
+    }
+    if (next !== current) setDraft(next)
   }
   const chooseDate = async () => {
     if (datePicker.active || !editor.visible) return
@@ -85,7 +91,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
     } finally { datePicker.active = false }
   }
   const leave = () => {
-    if (datePicker.active || !editor.visible) return
+    if (datePicker.active || deletion.presented || !editor.visible) return
     editor.visible = false
     const previous = editor.saved, result = commitShiftEditor(editor)
     if (result.state !== previous) onSaved(result.state)
@@ -95,7 +101,17 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
   return <List navigationTitle="倒班设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
     scrollContentBackground="hidden" background="systemGroupedBackground"
     onAppear={() => { editor.visible = true; applyDraft(editor.draft); applyDate(editor.dateText); setNotice(editor.saved.error || '') }}
-    onDisappear={leave}>
+    onDisappear={leave}
+    // 绑定在稳定的页面List，而不是可能被删除的行；不再从左滑回调调用全局Dialog.confirm。
+    confirmationDialog={{
+      title: deleteRequest ? `删除“${deleteRequest.shift.name}”？` : '删除班次？',
+      titleVisibility: 'visible', isPresented: deletePresented, onChanged: showDeleteConfirmation,
+      message: <Text>会移除循环中该班次的所有位置；若被引用，需重新选择基准位置。返回时自动保存。</Text>,
+      actions: <>
+        <Button title="删除" role="destructive" action={() => { if (deleteRequest) finishDelete(deleteRequest, true) }} />
+        <Button title="取消" role="cancel" action={() => { if (deleteRequest) finishDelete(deleteRequest, false) }} />
+      </>,
+    }}>
     <Section header={<Text>倒班显示</Text>}>
       <Picker title="倒班显示" pickerStyle="segmented" value={draft.enabled ? 1 : 0}
         onChanged={(value: number) => setDraft({ ...editor.draft, enabled: value === 1 })}>
@@ -108,7 +124,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
         const s = draft.shifts[i]
         return <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
           allowsFullSwipe: false,
-          actions: [<Button title="删除班次" role="destructive" action={() => { void deleteShift(s) }} />],
+          actions: [<Button title="删除班次" role="destructive" action={() => requestDelete(s)} />],
         }}>
           <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
             onChanged={(name: string) => editShift(s.id, { name })} />

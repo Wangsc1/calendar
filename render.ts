@@ -39,18 +39,24 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     out.push(text(w / 2, h / 2, '农历支持1901—2099年', fit(12, '农历支持1901—2099年', w - 12)))
   } else {
     const month = mode === 'month', col = w / 7
+    // 中号有班次时两周整体上移3点，页脚不动，净空增加3点；不改变格内度量。
+    const weekLift = !month && shiftOn(today, shifts) ? 3 : 0
     const headerY = month ? 39 : 15, firstY = month ? 65 : 46
-    // 大号：最后一行农历底部与底部日期保留约10点，余下高度全部分给行距。
-    const rowGap = month ? (h - 43 - firstY) / 5 : h - 43 - firstY
+    const originalRowGap = month ? (h - 43 - firstY) / 5 : h - 43 - firstY
+    // 大号页脚移走后，末行下移12点，5处行间隙各增加2.4点；首行不动。
+    const rowGap = month ? originalRowGap + 12 / 5 : originalRowGap
     // 回收标题下方7点分给5个行间隙（各+1.4）；格内度量仍沿用原72点起行，红底/农历/标签不变。
-    const cellGap = month ? (h - 43 - 72) / 5 : rowGap
-    // 大号标题加大；基线使标题上方留白与底部日期下方留白相同（中文字形约上沿0.88、下沿0.12倍字号）。
-    if (month) out.push(text(w / 2, 3 - f.today * .12 + 17 * .88, `${today.year}年${today.month}月`, 17, '#dddde1', 600))
+    const cellGap = month ? (h - 43 - 72) / 5 : originalRowGap
+    // 大号合并当天农历信息，仍用原标题基线；长闰月等按可用宽度缩小字号。
+    if (month) {
+      const title = `${today.year}年${today.month}月 · ${dayInfo(today).footer}`
+      out.push(text(w / 2, 3 - f.today * .12 + 17 * .88, title, fit(17, title, w - 8), '#dddde1', 600))
+    }
     weekOrder(settings.weekStart).forEach((day, index) => {
       out.push(text(col * (index + .5), headerY, `周${WEEKDAY_NAMES[day]}`, Math.min(f.weekday, (col - 4) / 2), isWeekend(day) ? '#94949a' : '#f3f3f5'))
     })
     days.forEach((d, index) => {
-      const info = dayInfo(d), x = col * ((index % 7) + .5), y = firstY + Math.floor(index / 7) * rowGap
+      const info = dayInfo(d), x = col * ((index % 7) + .5), y = firstY + Math.floor(index / 7) * rowGap - weekLift
       const current = dateKey(today) === info.key, outside = month && d.month !== today.month
       const color = current ? '#ffffff' : outside ? '#626269' : isWeekend(info.weekday) ? '#94949a' : '#f7f7f8'
       // 大号日期/农历字号、粗细及间距与中号一致。
@@ -78,8 +84,8 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       if (shift) {
         const tagWidth = col - CALENDAR_SHIFT_INSET * 2, tagOffset = Math.min(15, cellGap * .34), tagTop = y + tagOffset
         const baseTagHeight = Math.min(9, cellGap * .22)
-        // 向下增高最多2点，保留农历间距；紧凑尺寸让出下一行数字上沿和页脚。
-        const tagHeight = Math.min(baseTagHeight + 2, rowGap - size * .75 - tagOffset - .25, 40 - f.today * .88 - tagOffset - 1)
+        // 沿用既有增高/边界限制；新增行距不再带动班次条变高。
+        const tagHeight = Math.min(baseTagHeight + 2, originalRowGap - size * .75 - tagOffset - .25, 40 - f.today * .88 - tagOffset - 1)
         const tagFont = Math.min(7, baseTagHeight * .8)
         const dark = shiftPaint(shift, 'dark'), light = shiftPaint(shift, 'light')
         out.push(`<g data-role="shift" data-date="${info.key}" data-light-background="${light.background}" data-light-foreground="${light.foreground}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${dark.background}"/>`)
@@ -92,8 +98,10 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const badgeY = centerY - corner - 1
       out.push(badge(d, holidays, badgeX, badgeY, settings, 7.5, 900, .05))
     })
-    const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`
-    out.push(text(w / 2, h - 3, footer, fit(f.today, footer, w - 8), '#dddde1'))
+    if (!month) {
+      const i = dayInfo(today), footer = `${today.year}年${today.month}月${today.day}日  ${i.footer}`
+      out.push(text(w / 2, h - 3, footer, fit(f.today, footer, w - 8), '#dddde1'))
+    }
   }
   out.push('</g></svg>')
   return out.join('')

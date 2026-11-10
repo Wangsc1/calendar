@@ -103,9 +103,9 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
     onAppear={() => { editor.visible = true; applyDraft(editor.draft); applyDate(editor.dateText); setNotice(editor.saved.error || '') }}
     onDisappear={leave}
     // 绑定在稳定的页面List，而不是可能被删除的行；不再从左滑回调调用全局Dialog.confirm。
-    confirmationDialog={{
+    alert={{
       title: deleteRequest ? `删除“${deleteRequest.shift.name}”？` : '删除班次？',
-      titleVisibility: 'visible', isPresented: deletePresented, onChanged: showDeleteConfirmation,
+      isPresented: deletePresented, onChanged: showDeleteConfirmation,
       message: <Text>会移除循环中该班次的所有位置；若被引用，需重新选择基准位置。返回时自动保存。</Text>,
       actions: <>
         <Button title="删除" role="destructive" action={() => { if (deleteRequest) finishDelete(deleteRequest, true) }} />

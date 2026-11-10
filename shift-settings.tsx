@@ -1,4 +1,4 @@
-import { Button, ForEach, HStack, List, Navigation, Picker, RoundedRectangle, Section, Spacer, Text, TextField, VStack, Widget, ZStack, useMemo, useState } from 'scripting'
+import { Button, ForEach, HStack, Image, List, Navigation, Picker, RoundedRectangle, Section, Spacer, Text, TextField, VStack, Widget, ZStack, useMemo, useState } from 'scripting'
 import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, LEGACY_SHIFT_COLORS, MAX_SHIFTS, removeShift } from './shifts'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, commitShiftEditor } from './shift-editor'
@@ -17,6 +17,7 @@ function ColorSwatch({ color, selected, onSelect }: { color: string; selected: b
   </Button>
 }
 function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (update: Partial<Pick<Shift, 'name' | 'color' | 'style'>>) => void }) {
+  const [colorsExpanded, setColorsExpanded] = useState(false)
   return <VStack alignment="leading" spacing={8}>
     <HStack spacing={12}>
       {(['normal', 'transparent'] as ShiftStyle[]).map(style => <Button buttonStyle="plain" action={() => onChanged({ style })}>
@@ -26,15 +27,20 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
             stroke={{ shapeStyle: 'systemGreen', strokeStyle: { lineWidth: 2 } }} frame={{ width: 72, height: 32 }} /> : null}
         </ZStack>
       </Button>)}
+      <Spacer />
+      <Button buttonStyle="plain" action={() => setColorsExpanded(!colorsExpanded)}>
+        <Image systemName={colorsExpanded ? 'chevron.up' : 'chevron.down'} foregroundStyle="secondaryLabel"
+          frame={{ width: 44, height: 32 }} />
+      </Button>
     </HStack>
-    {Array.from({ length: Math.ceil(APPEARANCE_COLORS.length / 8) }, (_, row) => <HStack spacing={6} frame={{ maxWidth: 'infinity' }}>
+    {colorsExpanded ? Array.from({ length: Math.ceil(APPEARANCE_COLORS.length / 8) }, (_, row) => <HStack spacing={6} frame={{ maxWidth: 'infinity' }}>
       {Array.from({ length: 8 }, (_, col) => {
         const c = APPEARANCE_COLORS[row * 8 + col]
         return c ? <ColorSwatch color={c.value} selected={shift.color === c.value}
           onSelect={() => onChanged({ color: c.value })} />
           : <Spacer frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 30, maxHeight: 30 }} />
       })}
-    </HStack>)}
+    </HStack>) : null}
   </VStack>
 }
 

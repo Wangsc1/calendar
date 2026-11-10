@@ -33,7 +33,7 @@ export type DateLabel = { x: number; y: number; size: number; text: string; colo
 export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], mode: 'week' | 'month', settings: Appearance, width: number, height: number, dateLabels: DateLabel[], shifts?: ShiftSettings): string {
   const w = Math.max(110, width), h = Math.max(110, height), f = settings.fonts[mode]
   const days = layoutDates(today, mode, settings.weekStart)
-  const background = `<rect width="${w}" height="${h}" rx="16" fill="#28282a"/>`
+  const background = `<rect width="${w}" height="${h}" rx="16" fill="#202022"/>`
   const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${background}<g font-family="-apple-system, PingFang SC, Helvetica, sans-serif">`]
   if (days.some(d => d.year < MIN_YEAR || d.year > MAX_YEAR)) {
     out.push(text(w / 2, h / 2, '农历支持1901—2099年', fit(12, '农历支持1901—2099年', w - 12)))
@@ -108,13 +108,13 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
 }
 // 日间模式配色：按深色版颜色逐项映射，红/蓝/橙强调色保持不变，今日红底上的白字不变。
 const LIGHT_COLORS: Record<string, string> = {
-  '#28282a': '#ffffff', '#f7f7f8': '#1c1c1e', '#f3f3f5': '#1c1c1e', '#dddde1': '#3a3a3c',
+  '#202022': '#ffffff', '#f7f7f8': '#1c1c1e', '#f3f3f5': '#1c1c1e', '#dddde1': '#3a3a3c',
   '#94949a': '#8e8e93', '#626269': '#c7c7cc',
 }
 export function lightSVG(code: string): string {
   // 班次有自己的明暗色，必须隔离于日历旧全局颜色替换，防止浅色标签被误映射。
   return code.split(/(<g data-role="shift"[^>]*>[\s\S]*?<\/g>)/g).map(part => {
-    if (!part.startsWith('<g data-role="shift"')) return part.replace(/#28282a|#f7f7f8|#f3f3f5|#dddde1|#94949a|#626269/g, c => LIGHT_COLORS[c])
+    if (!part.startsWith('<g data-role="shift"')) return part.replace(/#202022|#f7f7f8|#f3f3f5|#dddde1|#94949a|#626269/g, c => LIGHT_COLORS[c])
     const background = /data-light-background="(#[0-9a-f]{6})"/.exec(part)?.[1]
     const foreground = /data-light-foreground="(#[0-9a-f]{6})"/.exec(part)?.[1]
     if (!background || !foreground) return part

@@ -36,7 +36,7 @@ async function run() {
     Widget.present(<VStack alignment="leading" spacing={0}
       padding={{ top: Math.round(inset * 0.8), bottom: Math.round(inset * 0.8), leading: inset, trailing: inset }}
       frame={{ maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' }}
-      widgetBackground={{ light: gradient('linear', { colors: ['#ffffff', '#f2f2f4'], startPoint: 'top', endPoint: 'bottom' }), dark: gradient('linear', { colors: ['#363636', '#262626'], startPoint: 'top', endPoint: 'bottom' }) }}>
+      widgetBackground={{ light: gradient('linear', { colors: ['#ffffff', '#f2f2f4'], startPoint: 'top', endPoint: 'bottom' }), dark: gradient('linear', { colors: ['#2e2e2e', '#1e1e1e'], startPoint: 'top', endPoint: 'bottom' }) }}>
       <Spacer />
       <HStack spacing={0}>
         <Text font={20} fontWeight="medium" foregroundStyle="#e74748" lineLimit={1}>{`周${WEEKDAY_NAMES[i.weekday]}`}</Text>
@@ -66,7 +66,7 @@ async function run() {
     : c === '#626269' ? { light: '#c7c7cc', dark: '#626269' }
     : c === '#94949a' ? { light: '#8e8e93', dark: '#94949a' }
     : { light: '#1c1c1e', dark: '#f7f7f8' }
-  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground={{ light: '#ffffff', dark: '#28282a' }}>
+  Widget.present(<VStack frame={{ maxWidth: 'infinity', maxHeight: 'infinity' }} widgetBackground={{ light: '#ffffff', dark: '#202022' }}>
     <ZStack frame={{ width, height }}>
       <SVG code={{ light: lightSVG(code), dark: code }} resizable scaleToFit renderingMode="original" antialiased frame={{ width, height }} />
       {labels.map(l => <Text font={l.size} fontWeight="semibold" foregroundStyle={dayColor(l.color)} lineLimit={1}

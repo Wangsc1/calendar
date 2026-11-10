@@ -103,7 +103,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
   const shiftRows = useMemo(() => {
     const rows = draft.shifts.map((s, i) => <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
       allowsFullSwipe: false,
-      actions: [<Button title="删除班次" role="destructive" action={() => requestDelete(s)} />],
+      actions: [<Button title="删除班次" tint="red" action={() => requestDelete(s)} />],
     }}>
       <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
         onChanged={(name: string) => editShift(s.id, { name })} />

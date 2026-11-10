@@ -76,11 +76,14 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       const displayLineY = shift ? displayLabelY + 2 : lineY
       if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${displayLineY}" x2="${x + lineHalf}" y2="${displayLineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
       if (shift) {
-        const tagWidth = col - CALENDAR_SHIFT_INSET * 2, tagTop = y + Math.min(15, cellGap * .34), tagHeight = Math.min(9, cellGap * .22)
-        const tagFont = Math.min(7, tagHeight * .8)
+        const tagWidth = col - CALENDAR_SHIFT_INSET * 2, tagOffset = Math.min(15, cellGap * .34), tagTop = y + tagOffset
+        const baseTagHeight = Math.min(9, cellGap * .22)
+        // 向下增高最多2点，保留农历间距；紧凑尺寸让出下一行数字上沿和页脚。
+        const tagHeight = Math.min(baseTagHeight + 2, rowGap - size * .75 - tagOffset - .25, 40 - f.today * .88 - tagOffset - 1)
+        const tagFont = Math.min(7, baseTagHeight * .8)
         const dark = shiftPaint(shift, 'dark'), light = shiftPaint(shift, 'light')
         out.push(`<g data-role="shift" data-date="${info.key}" data-light-background="${light.background}" data-light-foreground="${light.foreground}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${dark.background}"/>`)
-        out.push(text(x, tagTop + tagHeight * .8, shift.name, fit(tagFont, shift.name, tagWidth - 4), dark.foreground, 600), '</g>')
+        out.push(text(x, tagTop + baseTagHeight * .8 + (tagHeight - baseTagHeight) / 2, shift.name, fit(tagFont, shift.name, tagWidth - 4), dark.foreground, 600), '</g>')
       }
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
       // 所有日期统一使用今日红底外缘作为休/班定位基准，非今天不绘制红底。

@@ -11,6 +11,6 @@ export function homeCellLayout(width: number) {
     lunarCenterY: lunarBaseline - 10 * .35,
     lunarLineY: lunarBaseline + 3,
     todayCenterY: today.centerY, todayDiameter: today.radius * 2,
-    shiftWidth: Math.max(0, width - CALENDAR_SHIFT_INSET * 2), shiftHeight: 11, shiftCenterY: 40.5,
+    shiftWidth: Math.max(0, width - CALENDAR_SHIFT_INSET * 2), shiftHeight: 13, shiftCenterY: 41.5,
   }
 }

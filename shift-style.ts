@@ -1,6 +1,11 @@
 import type { Shift } from './shifts'
 
 export type ShiftPaint = { background: string; foreground: string }
+// 固定班次框内左右各3点；上下预留各10%（最多1点），再按1.1em限制高度。原生另有单行缩放。
+export function shiftLabelFont(name: string, preferred: number, width: number, height: number): number {
+  const units = Array.from(name).reduce((n, c) => n + (c.charCodeAt(0) > 255 ? 1 : .6), 0)
+  return Math.max(0, Math.min(preferred, (width - 6) / Math.max(1, units), (height - Math.min(2, height * .2)) / 1.1))
+}
 function rgb(hex: string): number[] {
   return [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))
 }

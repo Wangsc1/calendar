@@ -46,7 +46,7 @@ async function run() {
       </HStack>
       {shift ? <HStack spacing={4}>
         {dateText}<Spacer />
-        <ShiftBadge shift={shift} font={11} width={40} height={19} />
+        <ShiftBadge shift={shift} font={12} width={40} height={19} insetText />
       </HStack> : dateText}
       <VStack alignment="leading" spacing={0}>
         <Text font={19} foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>

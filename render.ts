@@ -1,7 +1,7 @@
 import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isWeekend, Appearance, MIN_YEAR, MAX_YEAR } from './calendar'
 import { HolidayResult, holidayOn } from './holidays'
 import { ShiftSettings, shiftOn } from './shifts'
-import { shiftPaint } from './shift-style'
+import { shiftLabelFont, shiftPaint } from './shift-style'
 import { CALENDAR_SHIFT_INSET, CALENDAR_TODAY_CORNER, calendarHighlight } from './calendar-geometry'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function text(x: number, y: number, s: string, size: number, color = '#f7f7f8', weight = 400, stroke = 0): string {
@@ -86,10 +86,10 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
         const baseTagHeight = Math.min(9, cellGap * .22)
         // 沿用既有增高/边界限制；新增行距不再带动班次条变高。
         const tagHeight = Math.min(baseTagHeight + 2, originalRowGap - size * .75 - tagOffset - .25, 40 - f.today * .88 - tagOffset - 1)
-        const tagFont = Math.min(7, baseTagHeight * .8)
+        const tagFont = shiftLabelFont(shift.name, 8, tagWidth, tagHeight)
         const dark = shiftPaint(shift, 'dark'), light = shiftPaint(shift, 'light')
         out.push(`<g data-role="shift" data-date="${info.key}" data-light-background="${light.background}" data-light-foreground="${light.foreground}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${dark.background}"/>`)
-        out.push(text(x, tagTop + baseTagHeight * .8 + (tagHeight - baseTagHeight) / 2, shift.name, fit(tagFont, shift.name, tagWidth - 4), dark.foreground, 600), '</g>')
+        out.push(text(x, tagTop + tagHeight / 2 + tagFont * .38, shift.name, tagFont, dark.foreground, 600), '</g>')
       }
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
       // 所有日期统一使用今日红底外缘作为休/班定位基准，非今天不绘制红底。

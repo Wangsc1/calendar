@@ -8,7 +8,7 @@ import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, createShiftEditor } from './shift-editor'
 import { CALENDAR_TODAY_CORNER } from './calendar-geometry'
 import { homeCellLayout } from './home-cell-layout'
-import { shiftPaint } from './shift-style'
+import { shiftLabelFont, shiftPaint } from './shift-style'
 
 let busy = false
 async function feedback(action: () => Promise<string | null>) {
@@ -123,9 +123,9 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
         {/* 背景本身明确col−10，不依赖Text intrinsic宽或frame/background修饰器执行顺序。 */}
         {shift && light && dark ? <RoundedRectangle cornerRadius={3} fill={{ light: light.background, dark: dark.background }}
             frame={{ width: g.shiftWidth, height: g.shiftHeight }} position={{ x: g.x, y: g.shiftCenterY }} /> : null}
-        {shift && light && dark ? <Text font={8} fontWeight="medium" lineLimit={1} minScaleFactor={0.6}
+        {shift && light && dark ? <Text font={shiftLabelFont(shift.name, 9, g.shiftWidth, g.shiftHeight)} fontWeight="medium" lineLimit={1} minScaleFactor={0.6}
             foregroundStyle={{ light: light.foreground, dark: dark.foreground }}
-            frame={{ width: g.shiftWidth, height: g.shiftHeight }} position={{ x: g.x, y: g.shiftCenterY }}>{shift.name}</Text>
+            frame={{ width: Math.max(0, g.shiftWidth - 6), height: g.shiftHeight - 2 }} position={{ x: g.x, y: g.shiftCenterY }}>{shift.name}</Text>
         : null}
       </ZStack>
     }}</GeometryReader>

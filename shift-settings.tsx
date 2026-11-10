@@ -47,27 +47,30 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
 // EditMode是宿主全局，不从scripting导入以免遮蔽它；旧宿主保留真正EditButton。
 const CUSTOM_SHIFT_SORT = typeof useObservable === 'function' && typeof EditMode !== 'undefined' && EditMode != null
   && typeof EditMode.active === 'function' && typeof EditMode.inactive === 'function'
-type ShiftSectionProps = { children?: VirtualNode | VirtualNode[] }
-function shiftSection(children: ShiftSectionProps['children'], mode?: Observable<EditMode>) {
-  return <Section environments={mode ? { editMode: mode } : undefined}
-    header={<HStack frame={{ maxWidth: 'infinity' }}><Text>班次设置</Text><Spacer />{mode
-      ? <Button title={mode.value.isEditing ? '完成' : '编辑排序'} action={() => {
-        mode.value = mode.value.isEditing ? EditMode.inactive() : EditMode.active()
-      }} /> : <EditButton />}</HStack>}
-    footer={<Text>班次循环按照以上排序从当日开始循环</Text>}>{children}</Section>
-}
-function EditableShiftSection({ children }: ShiftSectionProps) {
-  // 独立组件每次只调用同一个hook，无后续hook或渲染期setState。
-  // 仅兜JS同步初始化/构建异常；不能捕获宿主稍后的原生渲染错误。
+type SortListProps = { render: (mode?: Observable<EditMode>, button?: VirtualNode) => VirtualNode }
+function EditableSortList({ render }: SortListProps) {
+  const [ui, setUI] = useState({ editing: false, failed: false })
+  // 固定hook次序；失败分支也不跳过初始化hook，不在渲染期setState。
+  // 只兜JS同步异常，不能兜稍后的原生渲染错误。
   try {
     const mode = useObservable(() => EditMode.inactive())
-    return shiftSection(children, mode)
+    if (ui.failed) return render()
+    return render(mode, <Button title={ui.editing ? '完成' : '编辑排序'} action={() => {
+      try {
+        const next = mode.value.isEditing ? EditMode.inactive() : EditMode.active()
+        mode.setValue(next)
+        // 标题通过普通state刷新，不依赖嵌套header的Observable依赖追踪。
+        setUI({ editing: next.isEditing, failed: false })
+      } catch {
+        setUI({ editing: false, failed: true })
+      }
+    }} />)
   } catch {
-    return shiftSection(children)
+    return render()
   }
 }
-function ShiftSection({ children }: ShiftSectionProps) {
-  return CUSTOM_SHIFT_SORT ? <EditableShiftSection>{children}</EditableShiftSection> : shiftSection(children)
+function SortList({ render }: SortListProps) {
+  return CUSTOM_SHIFT_SORT ? <EditableSortList render={render} /> : render()
 }
 
 type DeleteRequest = { shift: Shift; handled: boolean }
@@ -139,7 +142,9 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
     </VStack>
     }} />
   }, [draft.shifts, editor])
-  return <List navigationTitle="倒班设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
+  const renderList: SortListProps['render'] = (mode, button = <EditButton />) => <List
+    environments={mode ? { editMode: mode } : undefined}
+    navigationTitle="倒班设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
     scrollContentBackground="hidden" background="systemGroupedBackground"
     onAppear={() => { editor.visible = true; setDraft(editor.draft); setNotice(editor.saved.error || '') }}
     onDisappear={leave}
@@ -160,7 +165,8 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       </Picker>
       {notice ? <Text font={13} foregroundStyle="systemOrange">{notice}</Text> : null}
     </Section>
-    <ShiftSection>
+    <Section header={<HStack frame={{ maxWidth: 'infinity' }}><Text>班次设置</Text><Spacer />{button}</HStack>}
+      footer={<Text>班次循环按照以上排序从当日开始循环</Text>}>
       {shiftRows}
       <Button title="新建班次" action={() => {
         if (editor.draft.shifts.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
@@ -169,6 +175,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
         // 新班次追加到每日循环；旧行回调另有对象身份保护，复用空闲ID也不会误删新类型。
         setDraft({ ...editor.draft, shifts: [...editor.draft.shifts, { id: `s${n}`, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
       }} />
-    </ShiftSection>
+    </Section>
   </List>
+  return <SortList render={renderList} />
 }

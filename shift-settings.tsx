@@ -1,4 +1,5 @@
-import { Button, EditButton, ForEach, HStack, Image, List, Picker, RoundedRectangle, Section, Spacer, Text, TextField, VStack, Widget, ZStack, useMemo, useState } from 'scripting'
+import { Button, EditButton, ForEach, HStack, Image, List, Picker, RoundedRectangle, Section, Spacer, Text, TextField, VStack, Widget, ZStack, useMemo, useObservable, useState } from 'scripting'
+import type { Observable, VirtualNode } from 'scripting'
 import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, LEGACY_SHIFT_COLORS, MAX_SHIFTS } from './shifts'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, commitShiftEditor, orderedShiftDraft } from './shift-editor'
@@ -41,6 +42,32 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
       })}
     </HStack>) : null}
   </VStack>
+}
+
+// EditMode是宿主全局，不从scripting导入以免遮蔽它；旧宿主保留真正EditButton。
+const CUSTOM_SHIFT_SORT = typeof useObservable === 'function' && typeof EditMode !== 'undefined' && EditMode != null
+  && typeof EditMode.active === 'function' && typeof EditMode.inactive === 'function'
+type ShiftSectionProps = { children?: VirtualNode | VirtualNode[] }
+function shiftSection(children: ShiftSectionProps['children'], mode?: Observable<EditMode>) {
+  return <Section environments={mode ? { editMode: mode } : undefined}
+    header={<HStack frame={{ maxWidth: 'infinity' }}><Text>班次设置</Text><Spacer />{mode
+      ? <Button title={mode.value.isEditing ? '完成' : '编辑排序'} action={() => {
+        mode.value = mode.value.isEditing ? EditMode.inactive() : EditMode.active()
+      }} /> : <EditButton />}</HStack>}
+    footer={<Text>班次循环按照以上排序从当日开始循环</Text>}>{children}</Section>
+}
+function EditableShiftSection({ children }: ShiftSectionProps) {
+  // 独立组件每次只调用同一个hook，无后续hook或渲染期setState。
+  // 仅兜JS同步初始化/构建异常；不能捕获宿主稍后的原生渲染错误。
+  try {
+    const mode = useObservable(() => EditMode.inactive())
+    return shiftSection(children, mode)
+  } catch {
+    return shiftSection(children)
+  }
+}
+function ShiftSection({ children }: ShiftSectionProps) {
+  return CUSTOM_SHIFT_SORT ? <EditableShiftSection>{children}</EditableShiftSection> : shiftSection(children)
 }
 
 type DeleteRequest = { shift: Shift; handled: boolean }
@@ -97,18 +124,20 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
     if (result.changed) Widget.reloadAll()
     if (result.error) void Dialog.alert({ title: '倒班设置未保存', message: result.error })
   }
-  // 弹窗开关不改变班次：复用ForEach、构建回调及行的JS节点，不因弹窗开关重新创建。
+  // 弹窗开关不改变班次：复用ForEach与构建回调，行由宿主按需构建。
   // 编辑/增删时shifts数组才变化；回调读取稳定editor/deletion，不捕获弹窗请求状态。
   const shiftRows = useMemo(() => {
-    const rows = draft.shifts.map((s, i) => <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
+    return <ForEach count={draft.shifts.length} onMove={moveShifts} itemBuilder={i => {
+      const s = draft.shifts[i]
+      return <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
       allowsFullSwipe: false,
       actions: [<Button title="删除班次" tint="red" action={() => requestDelete(s)} />],
     }}>
       <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
         onChanged={(name: string) => editShift(s.id, { name })} />
       <ShiftAppearance shift={s} onChanged={update => editShift(s.id, update)} />
-    </VStack>)
-    return <ForEach count={rows.length} itemBuilder={i => rows[i]} onMove={moveShifts} />
+    </VStack>
+    }} />
   }, [draft.shifts, editor])
   return <List navigationTitle="倒班设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
     scrollContentBackground="hidden" background="systemGroupedBackground"
@@ -131,8 +160,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       </Picker>
       {notice ? <Text font={13} foregroundStyle="systemOrange">{notice}</Text> : null}
     </Section>
-    <Section header={<HStack frame={{ maxWidth: 'infinity' }}><Text>班次设置</Text><Spacer /><EditButton /></HStack>}
-      footer={<Text>班次循环按照以上排序从当日开始循环</Text>}>
+    <ShiftSection>
       {shiftRows}
       <Button title="新建班次" action={() => {
         if (editor.draft.shifts.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
@@ -141,6 +169,6 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
         // 新班次追加到每日循环；旧行回调另有对象身份保护，复用空闲ID也不会误删新类型。
         setDraft({ ...editor.draft, shifts: [...editor.draft.shifts, { id: `s${n}`, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
       }} />
-    </Section>
+    </ShiftSection>
   </List>
 }

@@ -1,4 +1,4 @@
-import { Button, Circle, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
+import { Button, Circle, GeometryReader, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
 import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
@@ -6,6 +6,7 @@ import { ShiftRead, ShiftSettings, readShifts, shiftOn } from './shifts'
 import { ShiftSettingsPage } from './shift-settings'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, createShiftEditor } from './shift-editor'
+import { CALENDAR_SHIFT_INSET, CALENDAR_TODAY_CORNER, calendarHighlight } from './calendar-geometry'
 
 let busy = false
 async function feedback(action: () => Promise<string | null>) {
@@ -94,18 +95,30 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
   const calendarOpacity = shift ? { opacity: isToday ? 1 : dim } : {}
   const shape = settings.todayShape === 'circle'
-    ? <Circle {...calendarOpacity} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
-    : <RoundedRectangle {...calendarOpacity} cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
+    ? <Circle {...calendarOpacity} fill="systemGray5" frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
+    : <RoundedRectangle {...calendarOpacity} cornerRadius={10} fill="systemGray5" frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
   return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={shift ? 1 : isToday ? 1 : dim}
-    background={isToday || isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
-    // 休/班与小组件一致：所有日期都贴在42点红底的右上外缘，保留约1点间隙。
+    background={isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
+    // 休/班保留原有右上角偏移，不随今日或选择态改变。
     overlay={mark ? { alignment: 'center', content: <Text {...calendarOpacity} font={9} fontWeight="heavy" foregroundStyle={markColor}
       offset={{ x: 21, y: -18 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
+    <VStack spacing={1} frame={{ maxWidth: 'infinity' }} background={isToday ? <GeometryReader>{proxy => {
+      // 只测日期+农历块，不含班次行；与SVG同规则包围文字/横线，不依赖屏幕固定像素。
+      const { centerY, radius } = calendarHighlight(0, proxy.size.height + 3, 18 * .95)
+      const frame = { width: radius * 2, height: radius * 2 }
+      const position = { x: proxy.size.width / 2, y: centerY }
+      return settings.todayShape === 'circle'
+        ? <Circle fill="#e74748" frame={frame} position={position} />
+        : <RoundedRectangle cornerRadius={CALENDAR_TODAY_CORNER} fill="#e74748" frame={frame} position={position} />
+    }}</GeometryReader> : undefined}>
     <Text {...calendarOpacity} font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
     <Text {...calendarOpacity} font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
       overlay={info.lunarDay === 1 ? { alignment: 'bottom', content: <Rectangle fill={isToday ? 'white' : '#e74748'}
         frame={{ width: 12, height: 2 }} offset={{ x: 0, y: 3 }} /> } : undefined}>{label}</Text>
-    {shift ? <ShiftBadge shift={shift} font={8} height={11} /> : null}
+    </VStack>
+    {shift ? <HStack spacing={0} frame={{ maxWidth: 'infinity' }} padding={{ leading: CALENDAR_SHIFT_INSET, trailing: CALENDAR_SHIFT_INSET }}>
+      <ShiftBadge shift={shift} font={8} height={11} />
+    </HStack> : null}
   </VStack>
 }
 function HomePage() {

@@ -1,5 +1,5 @@
 import { Button, ForEach, HStack, List, Navigation, Picker, RoundedRectangle, Section, Text, TextField, VStack, Widget, ZStack, useState } from 'scripting'
-import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, removeShift } from './shifts'
+import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, MAX_SHIFTS, removeShift } from './shifts'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, commitShiftEditor } from './shift-editor'
 import { ShiftDatePicker } from './shift-date-picker'
@@ -114,6 +114,13 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
             onChanged={(name: string) => editShift(s.id, { name })} />
           <ShiftAppearance shift={s} onChanged={update => editShift(s.id, update)} />
         </VStack>
+      }} />
+      <Button title="新建班次" action={() => {
+        if (editor.draft.shifts.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
+        let n = 1
+        while (editor.draft.shifts.some(s => s.id === `s${n}`)) n++
+        // 只增加类型，不改循环与基准；旧行删除回调另有对象身份保护，复用空闲ID也不会误删新类型。
+        setDraft({ ...editor.draft, shifts: [...editor.draft.shifts, { id: `s${n}`, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
       }} />
     </Section>
     <Section header={<Text>基准日期及当日位置</Text>}>

@@ -2,6 +2,7 @@ import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isW
 import { HolidayResult, holidayOn } from './holidays'
 import { ShiftSettings, shiftOn } from './shifts'
 import { shiftPaint } from './shift-style'
+import { CALENDAR_SHIFT_INSET, CALENDAR_TODAY_CORNER, calendarHighlight } from './calendar-geometry'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function text(x: number, y: number, s: string, size: number, color = '#f7f7f8', weight = 400, stroke = 0): string {
   const one = (dx: number, dy: number) => `<text x="${x + dx}" y="${y + dy}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(s)}</text>`
@@ -18,7 +19,7 @@ function fit(size: number, s: string, width: number): number {
 function todayShape(x: number, y: number, radius: number, settings: Appearance): string {
   return settings.todayShape === 'circle'
     ? `<circle data-role="today" cx="${x}" cy="${y}" r="${radius}" fill="#e74748"/>`
-    : `<rect data-role="today" x="${x - radius}" y="${y - radius}" width="${radius * 2}" height="${radius * 2}" rx="5" fill="#e74748"/>`
+    : `<rect data-role="today" x="${x - radius}" y="${y - radius}" width="${radius * 2}" height="${radius * 2}" rx="${CALENDAR_TODAY_CORNER}" fill="#e74748"/>`
 }
 function badge(d: CivilDate, holidays: HolidayResult[], x: number, y: number, settings: Appearance, size = 9, weight = 700, stroke = 0): string {
   const day = holidayOn(d, holidays)
@@ -38,9 +39,11 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     out.push(text(w / 2, h / 2, '农历支持1901—2099年', fit(12, '农历支持1901—2099年', w - 12)))
   } else {
     const month = mode === 'month', col = w / 7
-    const headerY = month ? 46 : 15, firstY = month ? 72 : 46
+    const headerY = month ? 39 : 15, firstY = month ? 65 : 46
     // 大号：最后一行农历底部与底部日期保留约10点，余下高度全部分给行距。
     const rowGap = month ? (h - 43 - firstY) / 5 : h - 43 - firstY
+    // 回收标题下方7点分给5个行间隙（各+1.4）；格内度量仍沿用原72点起行，红底/农历/标签不变。
+    const cellGap = month ? (h - 43 - 72) / 5 : rowGap
     // 大号标题加大；基线使标题上方留白与底部日期下方留白相同（中文字形约上沿0.88、下沿0.12倍字号）。
     if (month) out.push(text(w / 2, 3 - f.today * .12 + 17 * .88, `${today.year}年${today.month}月`, 17, '#dddde1', 600))
     weekOrder(settings.weekStart).forEach((day, index) => {
@@ -53,29 +56,27 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       // 大号日期/农历字号、粗细及间距与中号一致。
       const wf = settings.fonts.week
       // 日期数字17点、半粗体；红底继续采用原18点布局，尺寸与位置不变。
-      const circleSize = Math.min(18, rowGap * .58, col * .62)
-      const size = Math.max(1, circleSize - 1), lunarSize = Math.min(wf.lunar, rowGap * .27)
+      const circleSize = Math.min(18, cellGap * .58, col * .62)
+      const size = Math.max(1, circleSize - 1), lunarSize = Math.min(wf.lunar, cellGap * .27)
       const label = current || info.lunarDay === 1 ? info.lunarLabel : info.label
       const labelY = y + lunarSize + 6
       // 今日红底以日期顶部到农历下划线的整体为中心；半径刚好包住下划线。
       const lineHalf = 6, lineY = labelY + 3
       const blockTop = y - circleSize * .75
-      const centerY = (blockTop + lineY) / 2
-      const fitRadius = Math.hypot(lineHalf, lineY - centerY) + 2.5
-      // 中号与大号使用同一红底尺寸和定位规则。
-      const radius = Math.max(fitRadius, circleSize * .95)
+      // 首页、中号与大号使用同一包围规则；按实际文字块定位，不把班次条计入红底。
+      const { centerY, radius } = calendarHighlight(blockTop, lineY, circleSize * .95)
       if (current) out.push(todayShape(x, centerY, radius, settings))
       // 由原生Text绘制日期数字，与App首页同字体同字重。
       dateLabels.push({ x, y, size, text: String(d.day), color })
       const shift = shiftOn(d, shifts)
       // 开启排班时仅收紧格内农历间距，为第三行留白；日期、红底、休班及整体尺寸不变。
-      const displayLunarSize = shift ? Math.min(lunarSize, 8, rowGap * .2) : lunarSize
-      const displayLabelY = shift ? y + Math.min(displayLunarSize + 2, rowGap * .24) : labelY
+      const displayLunarSize = shift ? Math.min(lunarSize, 8, cellGap * .2) : lunarSize
+      const displayLabelY = shift ? y + Math.min(displayLunarSize + 2, cellGap * .24) : labelY
       out.push(text(x, displayLabelY, label, fit(displayLunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       const displayLineY = shift ? displayLabelY + 2 : lineY
       if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${displayLineY}" x2="${x + lineHalf}" y2="${displayLineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
       if (shift) {
-        const tagWidth = col - 10, tagTop = y + Math.min(15, rowGap * .34), tagHeight = Math.min(9, rowGap * .22)
+        const tagWidth = col - CALENDAR_SHIFT_INSET * 2, tagTop = y + Math.min(15, cellGap * .34), tagHeight = Math.min(9, cellGap * .22)
         const tagFont = Math.min(7, tagHeight * .8)
         const dark = shiftPaint(shift, 'dark'), light = shiftPaint(shift, 'light')
         out.push(`<g data-role="shift" data-date="${info.key}" data-light-background="${light.background}" data-light-foreground="${light.foreground}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${dark.background}"/>`)

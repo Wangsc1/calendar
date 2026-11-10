@@ -1,7 +1,8 @@
-import { Button, ForEach, HStack, List, Picker, RoundedRectangle, Section, Text, TextField, VStack, Widget, ZStack, useState } from 'scripting'
+import { Button, ForEach, HStack, List, Navigation, Picker, RoundedRectangle, Section, Text, TextField, VStack, Widget, ZStack, useState } from 'scripting'
 import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, removeShift } from './shifts'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, commitShiftEditor } from './shift-editor'
+import { ShiftDatePicker } from './shift-date-picker'
 
 function ColorSwatch({ color, selected, onSelect }: { color: string; selected: boolean; onSelect: () => void }) {
   return <Button buttonStyle="plain" action={onSelect} frame={{ minWidth: 0, maxWidth: 'infinity' }}>
@@ -42,6 +43,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
   const [dateText, applyDate] = useState(editor.dateText)
   const [notice, setNotice] = useState(editor.saved.error || '')
   const [deletion] = useState({ pending: false })
+  const [datePicker] = useState({ active: false })
   // 更新稳定会话后再重绘；旧onDisappear闭包也会读取最新输入，不用effect清理保存。
   const setDraft = (value: ShiftSettings) => { editor.draft = value; applyDraft(value) }
   const setDateText = (value: string) => { editor.dateText = value; applyDate(value) }
@@ -67,8 +69,23 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       setNotice('无法完成删除确认，班次未删除，请重试。')
     } finally { deletion.pending = false }
   }
+  const chooseDate = async () => {
+    if (datePicker.active || !editor.visible) return
+    // 先设门闩再呈现：被模态日历遮盖不等于离开设置，不能触发返回保存。
+    datePicker.active = true
+    let confirmed: string | null = null
+    try {
+      await Navigation.present({
+        element: <ShiftDatePicker initialDate={editor.dateText} onConfirm={key => { confirmed = key }} />,
+        modalPresentationStyle: 'pageSheet',
+      })
+      if (confirmed !== null) setDateText(confirmed)
+    } catch {
+      setNotice('无法打开日期选择器，基准日期未更改，请重试。')
+    } finally { datePicker.active = false }
+  }
   const leave = () => {
-    if (!editor.visible) return
+    if (datePicker.active || !editor.visible) return
     editor.visible = false
     const previous = editor.saved, result = commitShiftEditor(editor)
     if (result.state !== previous) onSaved(result.state)
@@ -100,7 +117,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       }} />
     </Section>
     <Section header={<Text>基准日期及当日位置</Text>}>
-      <TextField title="基准日期" prompt="YYYY-MM-DD（必填才显示）" value={dateText} onChanged={setDateText} />
+      <Button title={`基准日期：${dateText || '请选择日期'}`} action={() => { void chooseDate() }} />
       <Picker title="基准日是循环的" pickerStyle="menu" value={draft.anchorIndex === null ? -1 : draft.anchorIndex}
         onChanged={(value: number) => setDraft({ ...editor.draft, anchorIndex: value < 0 ? null : value })}>
         <Text tag={-1}>请选择位置</Text>
@@ -109,7 +126,6 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
           return <ShiftBadge shift={shift} tag={i} text={`第${i + 1}天 · ${shift.name || '未命名'}`} width={140} height={18} />
         })}
       </Picker>
-      <Text font={13} foregroundStyle="secondaryLabel">日期按北京时间自然日计算，格式如2026-11-10。重复班次请按“第几天”选择，不仅按名称选择。基准日前也按相同循环倒推；任一项未配置都不显示排班。</Text>
     </Section>
   </List>
 }

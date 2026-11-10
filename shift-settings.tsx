@@ -20,10 +20,11 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
   return <VStack alignment="leading" spacing={8}>
     <HStack spacing={12}>
       {(['normal', 'transparent'] as ShiftStyle[]).map(style => <Button buttonStyle="plain" action={() => onChanged({ style })}>
-        <HStack spacing={4}>
-          <Text foregroundStyle="systemGreen">{(shift.style ?? 'normal') === style ? '◉' : '○'}</Text>
+        <ZStack frame={{ width: 72, height: 32 }}>
           <ShiftBadge shift={{ ...shift, style }} text={style === 'normal' ? '普通' : '透明'} width={64} height={24} font={13} />
-        </HStack>
+          {(shift.style ?? 'normal') === style ? <RoundedRectangle cornerRadius={6} fill="clear"
+            stroke={{ shapeStyle: 'systemGreen', strokeStyle: { lineWidth: 2 } }} frame={{ width: 72, height: 32 }} /> : null}
+        </ZStack>
       </Button>)}
     </HStack>
     {Array.from({ length: Math.ceil(APPEARANCE_COLORS.length / 8) }, (_, row) => <HStack spacing={6} frame={{ maxWidth: 'infinity' }}>

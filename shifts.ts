@@ -24,6 +24,7 @@ export type Shift = { id: string; name: string; color: string; style?: ShiftStyl
 export type ShiftSettings = {
   schema: 1; enabled: boolean; shifts: Shift[]; cycle: string[]
   anchorDate: string | null; anchorIndex: number | null
+  cycleRule?: 'list-daily-v1'
 }
 export type ShiftRead = { config: ShiftSettings; error: string | null }
 export function defaultShifts(): ShiftSettings {
@@ -59,7 +60,10 @@ export function validateShifts(raw: unknown): ShiftSettings {
   if (x.anchorDate !== null && (typeof x.anchorDate !== 'string' || !parseShiftDate(x.anchorDate))) throw new Error('基准日期须为1901—2099年的有效YYYY-MM-DD日期')
   if (x.anchorIndex !== null && (typeof x.anchorIndex !== 'number' || !Number.isInteger(x.anchorIndex) ||
     x.anchorIndex < 0 || x.anchorIndex >= x.cycle.length)) throw new Error('请选择基准日对应的循环位置')
-  return { schema: 1, enabled: x.enabled, shifts, cycle: [...x.cycle], anchorDate: x.anchorDate!, anchorIndex: x.anchorIndex! }
+  if (x.cycleRule !== undefined && (x.cycleRule !== 'list-daily-v1' || x.anchorDate === null || x.anchorIndex !== 0 ||
+    x.cycle.length !== shifts.length || x.cycle.some((id, i) => id !== shifts[i].id))) throw new Error('班次顺序循环配置无效')
+  return { schema: 1, enabled: x.enabled, shifts, cycle: [...x.cycle], anchorDate: x.anchorDate!, anchorIndex: x.anchorIndex!,
+    ...(x.cycleRule === 'list-daily-v1' ? { cycleRule: x.cycleRule } : {}) }
 }
 export function readShifts(): ShiftRead {
   try {

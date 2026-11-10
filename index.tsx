@@ -138,13 +138,22 @@ function HomePage() {
   const [view, setView] = useState<CivilDate>({ year: today.year, month: today.month, day: 1 })
   const [selected, setSelected] = useState<CivilDate>(today)
   const [holidays, setHolidays] = useState<HolidayResult[]>([])
+  const [holidaySession] = useState({ firstLoad: true })
   const [shiftState, setShiftState] = useState(readShifts())
   const [shiftEditor] = useState(createShiftEditor(shiftState))
   const days = monthGrid(view, settings.weekStart)
   useEffect(() => {
     let cancelled = false
     const years = Array.from(new Set(days.map(d => d.year)))
-    void Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO))).then(data => { if (!cancelled) setHolidays(data) })
+    const force = holidaySession.firstLoad
+    holidaySession.firstLoad = false
+    // 每次运行首页首次加载都联网；浏览其他月份仍沿用原缓存策略。
+    void Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO, force))).then(data => {
+      if (!cancelled) {
+        setHolidays(data)
+        if (force && data.some(r => r.source.includes('联网'))) Widget.reloadAll()
+      }
+    })
     return () => { cancelled = true }
   }, [view.year, view.month, settings.weekStart])
   const move = (n: number) => {

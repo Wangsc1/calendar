@@ -88,17 +88,9 @@ export function shiftOn(d: CivilDate, config?: ShiftSettings): Shift | undefined
 export function replaceCycle(config: ShiftSettings, cycle: string[]): ShiftSettings {
   return { ...config, cycle, anchorIndex: null }
 }
-// SwiftUI原始列表offset：移除源元素后，扣除offset之前被移走的数量。
-export function moveCycle(config: ShiftSettings, indices: number[], offset: number): ShiftSettings {
-  if (!indices.length || new Set(indices).size !== indices.length ||
-    indices.some(i => !Number.isInteger(i) || i < 0 || i >= config.cycle.length) ||
-    !Number.isInteger(offset) || offset < 0 || offset > config.cycle.length) return config
-  const ordered = [...indices].sort((a, b) => a - b), selected = new Set(ordered)
-  const next = config.cycle.filter((_, i) => !selected.has(i))
-  next.splice(offset - ordered.filter(i => i < offset).length, 0, ...ordered.map(i => config.cycle[i]))
-  return next.every((id, i) => id === config.cycle[i]) ? config : replaceCycle(config, next)
-}
 export function removeShift(config: ShiftSettings, id: string): ShiftSettings {
+  // 确认框返回后数据可能已变，最终更新也必须保证至少一个班次；陈旧删除是空操作。
+  if (config.shifts.length <= 1 || !config.shifts.some(s => s.id === id)) return config
   const cycle = config.cycle.filter(item => item !== id)
   const next = { ...config, shifts: config.shifts.filter(s => s.id !== id) }
   return cycle.length === config.cycle.length ? next : replaceCycle(next, cycle)

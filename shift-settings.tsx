@@ -1,5 +1,5 @@
-import { Button, EditButton, ForEach, HStack, List, Picker, RoundedRectangle, Section, Spacer, Text, TextField, VStack, Widget, ZStack, useState } from 'scripting'
-import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, MAX_SHIFTS, moveCycle, replaceCycle, removeShift } from './shifts'
+import { Button, ForEach, HStack, List, Picker, RoundedRectangle, Section, Text, TextField, VStack, Widget, ZStack, useState } from 'scripting'
+import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, removeShift } from './shifts'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, commitShiftEditor } from './shift-editor'
 
@@ -41,12 +41,31 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
   const [draft, applyDraft] = useState<ShiftSettings>(editor.draft)
   const [dateText, applyDate] = useState(editor.dateText)
   const [notice, setNotice] = useState(editor.saved.error || '')
+  const [deletion] = useState({ pending: false })
   // 更新稳定会话后再重绘；旧onDisappear闭包也会读取最新输入，不用effect清理保存。
   const setDraft = (value: ShiftSettings) => { editor.draft = value; applyDraft(value) }
   const setDateText = (value: string) => { editor.dateText = value; applyDate(value) }
-  const changeCycle = (cycle: string[]) => setDraft(replaceCycle(editor.draft, cycle))
   const editShift = (id: string, update: Partial<Pick<Shift, 'name' | 'color' | 'style'>>) => {
     setDraft({ ...editor.draft, shifts: editor.draft.shifts.map(s => s.id === id ? { ...s, ...update } : s) })
+  }
+  const deleteShift = async (shift: Shift) => {
+    // 单次确认；按对象身份拒绝已删除/重建的旧行回调，不把原生删除与异步确认混成onDelete。
+    if (deletion.pending || !editor.visible || !editor.draft.shifts.includes(shift)) return
+    deletion.pending = true
+    try {
+      if (editor.draft.shifts.length <= 1) {
+        await Dialog.alert({ title: '保留一个班次', message: '至少需保留一个班次。' }); return
+      }
+      const ok = await Dialog.confirm({ title: `删除“${shift.name}”？`, message: '会移除循环中该班次的所有位置；若被引用，需重新选择基准位置。返回时自动保存。', confirmLabel: '删除', cancelLabel: '取消' })
+      if (!ok || !editor.visible || !editor.draft.shifts.includes(shift)) return
+      const current = editor.draft, next = removeShift(current, shift.id)
+      if (!next.cycle.length) {
+        await Dialog.alert({ title: '无法删除班次', message: '该班次占据全部循环位置，删除后循环将为空。班次和原排班未改动。' }); return
+      }
+      if (next !== current) setDraft(next)
+    } catch {
+      setNotice('无法完成删除确认，班次未删除，请重试。')
+    } finally { deletion.pending = false }
   }
   const leave = () => {
     if (!editor.visible) return
@@ -67,40 +86,18 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       </Picker>
       {notice ? <Text font={13} foregroundStyle="systemOrange">{notice}</Text> : null}
     </Section>
-    <Section header={<HStack frame={{ maxWidth: 'infinity' }}><Text>班次设置</Text><Spacer /><EditButton /></HStack>}>
-      <Text font={13} foregroundStyle="secondaryLabel">班次名称与样式（1—4字，最多12种）</Text>
-      {draft.shifts.map((s, i) => <VStack alignment="leading" spacing={6} trailingSwipeActions={{
-        allowsFullSwipe: false,
-        actions: [<Button title="删除班次" role="destructive" action={() => {
-          if (editor.draft.shifts.length === 1) { void Dialog.alert({ title: '保留一个班次', message: '至少需保留一个班次。' }); return }
-          void Dialog.confirm({ title: `删除“${s.name}”？`, message: '会移除循环中该班次的所有位置；若被引用，需重新选择基准位置。返回时自动保存。', confirmLabel: '删除', cancelLabel: '取消' }).then(ok => {
-            if (ok && editor.visible) setDraft(removeShift(editor.draft, s.id))
-          })
-        }} />],
-      }}>
-        <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
-          onChanged={(name: string) => editShift(s.id, { name })} />
-        <ShiftAppearance shift={s} onChanged={update => editShift(s.id, update)} />
-      </VStack>)}
-      <Button title="新建班次" action={() => {
-        if (editor.draft.shifts.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
-        let n = 1
-        while (editor.draft.shifts.some(s => s.id === `s${n}`)) n++
-        setDraft({ ...editor.draft, shifts: [...editor.draft.shifts, { id: `s${n}`, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
+    <Section header={<Text>班次设置</Text>}>
+      <ForEach count={draft.shifts.length} itemBuilder={i => {
+        const s = draft.shifts[i]
+        return <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
+          allowsFullSwipe: false,
+          actions: [<Button title="删除班次" role="destructive" action={() => { void deleteShift(s) }} />],
+        }}>
+          <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
+            onChanged={(name: string) => editShift(s.id, { name })} />
+          <ShiftAppearance shift={s} onChanged={update => editShift(s.id, update)} />
+        </VStack>
       }} />
-      <Text font={13} foregroundStyle="secondaryLabel">{`循环顺序（${draft.cycle.length}天）`}</Text>
-      <Text font={13} foregroundStyle="secondaryLabel">每个位置代表一天，可重复选择同一班次。点“编辑”后拖动右侧排序手柄；循环变更后请重新确认基准位置。</Text>
-      <ForEach count={draft.cycle.length} onMove={(indices: number[], offset: number) => {
-        // 只移动循环天，不移动上方班次类型；忽略陈旧列表回调。
-        if (draft.cycle !== editor.draft.cycle) return
-        setDraft(moveCycle(editor.draft, indices, offset))
-      }} itemBuilder={i => <VStack key={`cycle-${i}`} alignment="leading" spacing={4}>
-        <Picker title={`第${i + 1}天`} value={draft.cycle[i]} pickerStyle="menu" onChanged={(value: string) => changeCycle(editor.draft.cycle.map((x, j) => j === i ? value : x))}>
-          {draft.shifts.map(s => <ShiftBadge shift={s} tag={s.id} text={s.name || '未命名'} width={76} height={18} />)}
-        </Picker>
-        <Button title="移除这一天" role="destructive" action={() => changeCycle(editor.draft.cycle.filter((_, j) => j !== i))} />
-      </VStack>} />
-      <Button title="添加一天" action={() => changeCycle([...editor.draft.cycle, editor.draft.shifts[0].id])} />
     </Section>
     <Section header={<Text>基准日期及当日位置</Text>}>
       <TextField title="基准日期" prompt="YYYY-MM-DD（必填才显示）" value={dateText} onChanged={setDateText} />

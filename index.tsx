@@ -1,4 +1,4 @@
-import { Button, Circle, GeometryReader, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, useEffect, useState } from 'scripting'
+import { Button, Circle, GeometryReader, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, ZStack, useEffect, useState } from 'scripting'
 import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
@@ -6,7 +6,9 @@ import { ShiftRead, ShiftSettings, readShifts, shiftOn } from './shifts'
 import { ShiftSettingsPage } from './shift-settings'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, createShiftEditor } from './shift-editor'
-import { CALENDAR_SHIFT_INSET, CALENDAR_TODAY_CORNER, calendarHighlight } from './calendar-geometry'
+import { CALENDAR_TODAY_CORNER } from './calendar-geometry'
+import { homeCellLayout } from './home-cell-layout'
+import { shiftPaint } from './shift-style'
 
 let busy = false
 async function feedback(action: () => Promise<string | null>) {
@@ -102,23 +104,31 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
     // 休/班保留原有右上角偏移，不随今日或选择态改变。
     overlay={mark ? { alignment: 'center', content: <Text {...calendarOpacity} font={9} fontWeight="heavy" foregroundStyle={markColor}
       offset={{ x: 21, y: -18 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
-    <VStack spacing={1} frame={{ maxWidth: 'infinity' }} background={isToday ? <GeometryReader>{proxy => {
-      // 只测日期+农历块，不含班次行；与SVG同规则包围文字/横线，不依赖屏幕固定像素。
-      const { centerY, radius } = calendarHighlight(0, proxy.size.height + 3, 18 * .95)
-      const frame = { width: radius * 2, height: radius * 2 }
-      const position = { x: proxy.size.width / 2, y: centerY }
-      return settings.todayShape === 'circle'
-        ? <Circle fill="#e74748" frame={frame} position={position} />
-        : <RoundedRectangle cornerRadius={CALENDAR_TODAY_CORNER} fill="#e74748" frame={frame} position={position} />
-    }}</GeometryReader> : undefined}>
-    <Text {...calendarOpacity} font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
-    <Text {...calendarOpacity} font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
-      overlay={info.lunarDay === 1 ? { alignment: 'bottom', content: <Rectangle fill={isToday ? 'white' : '#e74748'}
-        frame={{ width: 12, height: 2 }} offset={{ x: 0, y: 3 }} /> } : undefined}>{label}</Text>
-    </VStack>
-    {shift ? <HStack spacing={0} frame={{ maxWidth: 'infinity' }} padding={{ leading: CALENDAR_SHIFT_INSET, trailing: CALENDAR_SHIFT_INSET }}>
-      <ShiftBadge shift={shift} font={8} height={11} />
-    </HStack> : null}
+    <GeometryReader>{proxy => {
+      // GeometryReader在已固定49点的整格中只读宽度，不再测Text/VStack背景的未知高度。
+      const g = homeCellLayout(proxy.size.width)
+      const todayFrame = { width: g.todayDiameter, height: g.todayDiameter }
+      const todayPosition = { x: g.x, y: g.todayCenterY }
+      const light = shift ? shiftPaint(shift, 'light') : null, dark = shift ? shiftPaint(shift, 'dark') : null
+      return <ZStack frame={{ width: g.width, height: g.height }}>
+        {isToday ? settings.todayShape === 'circle'
+          ? <Circle fill="#e74748" frame={todayFrame} position={todayPosition} />
+          : <RoundedRectangle cornerRadius={CALENDAR_TODAY_CORNER} fill="#e74748" frame={todayFrame} position={todayPosition} /> : null}
+        <Text {...calendarOpacity} font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}
+          frame={{ width: g.width, height: 22 }} position={{ x: g.x, y: g.dateCenterY }}>{String(d.day)}</Text>
+        <Text {...calendarOpacity} font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
+          frame={{ width: Math.max(0, g.width - 6), height: 12 }} position={{ x: g.x, y: g.lunarCenterY }}>{label}</Text>
+        {info.lunarDay === 1 ? <Rectangle {...calendarOpacity} fill={isToday ? 'white' : '#e74748'}
+          frame={{ width: 12, height: 2 }} position={{ x: g.x, y: g.lunarLineY }} /> : null}
+        {/* 背景本身明确col−10，不依赖Text intrinsic宽或frame/background修饰器执行顺序。 */}
+        {shift && light && dark ? <RoundedRectangle cornerRadius={3} fill={{ light: light.background, dark: dark.background }}
+            frame={{ width: g.shiftWidth, height: g.shiftHeight }} position={{ x: g.x, y: g.shiftCenterY }} /> : null}
+        {shift && light && dark ? <Text font={8} fontWeight="medium" lineLimit={1} minScaleFactor={0.6}
+            foregroundStyle={{ light: light.foreground, dark: dark.foreground }}
+            frame={{ width: g.shiftWidth, height: g.shiftHeight }} position={{ x: g.x, y: g.shiftCenterY }}>{shift.name}</Text>
+        : null}
+      </ZStack>
+    }}</GeometryReader>
   </VStack>
 }
 function HomePage() {

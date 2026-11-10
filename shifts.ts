@@ -2,13 +2,25 @@ import { CivilDate, MIN_YEAR, MAX_YEAR, dateKey } from './calendar'
 
 export const SHIFTS_KEY = 'calendar.shifts.v1'
 export const MAX_SHIFTS = 12
-export const MAX_CYCLE = 60
-export const SHIFT_COLORS = [
+// 1.8.0六色仍接受；不修改已保存颜色。
+export const LEGACY_SHIFT_COLORS = [
   { name: '蓝', value: '#287ab8' }, { name: '红', value: '#c54249' },
   { name: '橙', value: '#a95d13' }, { name: '绿', value: '#387d38' },
   { name: '紫', value: '#8650ad' }, { name: '青', value: '#167b83' },
 ]
-export type Shift = { id: string; name: string; color: string }
+// 参考色板：4行8列。色块展示原色，标签会按明暗模式作同色系对比度校正。
+export const SHIFT_COLORS = [
+  ['草绿', '#8cbf60'], ['灰绿', '#80a583'], ['青蓝', '#55aab1'], ['天蓝', '#70b8e0'],
+  ['蓝紫', '#7a82d3'], ['卡其', '#c8a760'], ['棕橙', '#b98063'], ['浅靛', '#6d7bf6'],
+  ['宝蓝', '#3e68d8'], ['紫罗兰', '#7d58e4'], ['杏橙', '#f09866'], ['玫粉', '#eb7a8e'],
+  ['兰紫', '#d35ec7'], ['豆沙', '#d28084'], ['珊瑚', '#e16764'], ['银灰', '#bababa'],
+  ['浅金', '#f0cb73'], ['金黄', '#f3b23e'], ['橘橙', '#e87235'], ['朱红', '#ec5938'],
+  ['亮绿', '#74c43d'], ['藕紫', '#c16ab8'], ['浅灰', '#d0d0d0'], ['雾蓝', '#6994c9'],
+  ['浅青', '#82dbe1'], ['深绿', '#498046'], ['墨青', '#2f605d'], ['海蓝', '#3b79c4'],
+  ['亮紫', '#5819ee'], ['深蓝', '#1b43c6'], ['深红', '#5b0e08'], ['砖红', '#96504e'],
+].map(([name, value]) => ({ name, value }))
+export type ShiftStyle = 'normal' | 'transparent'
+export type Shift = { id: string; name: string; color: string; style?: ShiftStyle }
 export type ShiftSettings = {
   schema: 1; enabled: boolean; shifts: Shift[]; cycle: string[]
   anchorDate: string | null; anchorIndex: number | null
@@ -16,7 +28,7 @@ export type ShiftSettings = {
 export type ShiftRead = { config: ShiftSettings; error: string | null }
 export function defaultShifts(): ShiftSettings {
   return { schema: 1, enabled: false, shifts: ['白班', '上夜', '下夜', '休息'].map((name, i) => ({
-    id: `s${i + 1}`, name, color: SHIFT_COLORS[i].value,
+    id: `s${i + 1}`, name, color: LEGACY_SHIFT_COLORS[i].value, style: 'normal',
   })), cycle: ['s1', 's2', 's3', 's4'], anchorDate: null, anchorIndex: null }
 }
 export function parseShiftDate(value: string): CivilDate | null {
@@ -32,15 +44,16 @@ export function validateShifts(raw: unknown): ShiftSettings {
   const x = raw as Partial<ShiftSettings>
   if (x.schema !== 1 || typeof x.enabled !== 'boolean' || !Array.isArray(x.shifts) ||
     x.shifts.length < 1 || x.shifts.length > MAX_SHIFTS || !Array.isArray(x.cycle) ||
-    x.cycle.length < 1 || x.cycle.length > MAX_CYCLE) throw new Error('班次需1—12种，循环需1—60天')
+    x.cycle.length < 1) throw new Error('班次需1—12种，循环至少1天')
   const ids = new Set<string>(), names = new Set<string>()
   const shifts = x.shifts.map(s => {
     if (!s || typeof s.id !== 'string' || !/^s\d{1,4}$/.test(s.id) || ids.has(s.id) ||
       typeof s.name !== 'string' || !s.name.trim() || Array.from(s.name.trim()).length > 4 ||
       /[\u0000-\u001f\u007f]/.test(s.name) || names.has(s.name.trim()) ||
-      !SHIFT_COLORS.some(c => c.value === s.color)) throw new Error('班次名称须唯一、1—4字，颜色须从列表选择')
+      ![...SHIFT_COLORS, ...LEGACY_SHIFT_COLORS].some(c => c.value === s.color) ||
+      (s.style !== undefined && s.style !== 'normal' && s.style !== 'transparent')) throw new Error('班次名称须唯一、1—4字，颜色和样式须从列表选择')
     ids.add(s.id); names.add(s.name.trim())
-    return { id: s.id, name: s.name.trim(), color: s.color }
+    return { id: s.id, name: s.name.trim(), color: s.color, style: s.style ?? 'normal' }
   })
   if (!x.cycle.every(id => typeof id === 'string' && ids.has(id))) throw new Error('循环引用了不存在的班次')
   if (x.anchorDate !== null && (typeof x.anchorDate !== 'string' || !parseShiftDate(x.anchorDate))) throw new Error('基准日期须为1901—2099年的有效YYYY-MM-DD日期')
@@ -74,6 +87,16 @@ export function shiftOn(d: CivilDate, config?: ShiftSettings): Shift | undefined
 // 改动循环后清除位置，必须由用户重新确认；同名班次的不同重复位置不混为一谈。
 export function replaceCycle(config: ShiftSettings, cycle: string[]): ShiftSettings {
   return { ...config, cycle, anchorIndex: null }
+}
+// SwiftUI原始列表offset：移除源元素后，扣除offset之前被移走的数量。
+export function moveCycle(config: ShiftSettings, indices: number[], offset: number): ShiftSettings {
+  if (!indices.length || new Set(indices).size !== indices.length ||
+    indices.some(i => !Number.isInteger(i) || i < 0 || i >= config.cycle.length) ||
+    !Number.isInteger(offset) || offset < 0 || offset > config.cycle.length) return config
+  const ordered = [...indices].sort((a, b) => a - b), selected = new Set(ordered)
+  const next = config.cycle.filter((_, i) => !selected.has(i))
+  next.splice(offset - ordered.filter(i => i < offset).length, 0, ...ordered.map(i => config.cycle[i]))
+  return next.every((id, i) => id === config.cycle[i]) ? config : replaceCycle(config, next)
 }
 export function removeShift(config: ShiftSettings, id: string): ShiftSettings {
   const cycle = config.cycle.filter(item => item !== id)

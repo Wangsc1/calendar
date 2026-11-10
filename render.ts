@@ -1,6 +1,7 @@
 import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isWeekend, Appearance, MIN_YEAR, MAX_YEAR } from './calendar'
 import { HolidayResult, holidayOn } from './holidays'
 import { ShiftSettings, shiftOn } from './shifts'
+import { shiftPaint } from './shift-style'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function text(x: number, y: number, s: string, size: number, color = '#f7f7f8', weight = 400, stroke = 0): string {
   const one = (dx: number, dy: number) => `<text x="${x + dx}" y="${y + dy}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(s)}</text>`
@@ -76,8 +77,9 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       if (shift) {
         const tagWidth = col - 10, tagTop = y + Math.min(15, rowGap * .34), tagHeight = Math.min(9, rowGap * .22)
         const tagFont = Math.min(7, tagHeight * .8)
-        out.push(`<g data-role="shift" data-date="${info.key}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${shift.color}"/>`)
-        out.push(text(x, tagTop + tagHeight * .8, shift.name, fit(tagFont, shift.name, tagWidth - 4), '#ffffff', 600), '</g>')
+        const dark = shiftPaint(shift, 'dark'), light = shiftPaint(shift, 'light')
+        out.push(`<g data-role="shift" data-date="${info.key}" data-light-background="${light.background}" data-light-foreground="${light.foreground}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${dark.background}"/>`)
+        out.push(text(x, tagTop + tagHeight * .8, shift.name, fit(tagFont, shift.name, tagWidth - 4), dark.foreground, 600), '</g>')
       }
       // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
       // 所有日期统一使用今日红底外缘作为休/班定位基准，非今天不绘制红底。
@@ -98,5 +100,13 @@ const LIGHT_COLORS: Record<string, string> = {
   '#94949a': '#8e8e93', '#626269': '#c7c7cc',
 }
 export function lightSVG(code: string): string {
-  return code.replace(/#28282a|#f7f7f8|#f3f3f5|#dddde1|#94949a|#626269/g, c => LIGHT_COLORS[c])
+  // 班次有自己的明暗色，必须隔离于日历旧全局颜色替换，防止浅色标签被误映射。
+  return code.split(/(<g data-role="shift"[^>]*>[\s\S]*?<\/g>)/g).map(part => {
+    if (!part.startsWith('<g data-role="shift"')) return part.replace(/#28282a|#f7f7f8|#f3f3f5|#dddde1|#94949a|#626269/g, c => LIGHT_COLORS[c])
+    const background = /data-light-background="(#[0-9a-f]{6})"/.exec(part)?.[1]
+    const foreground = /data-light-foreground="(#[0-9a-f]{6})"/.exec(part)?.[1]
+    if (!background || !foreground) return part
+    return part.replace(/(<rect[^>]* fill=")[^"]+/, (_, prefix: string) => prefix + background)
+      .replace(/(<text[^>]* fill=")[^"]+/g, (_, prefix: string) => prefix + foreground)
+  }).join('')
 }

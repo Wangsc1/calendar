@@ -1,8 +1,9 @@
-import { HStack, RoundedRectangle, Spacer, SVG, Text, VStack, ZStack, Widget, gradient } from 'scripting'
+import { HStack, Spacer, SVG, Text, VStack, ZStack, Widget, gradient } from 'scripting'
 import { chinaToday, layoutDates, nextChinaMidnight, dayInfo, MIN_YEAR, MAX_YEAR, readAppearance, widgetLayout, WEEKDAY_NAMES } from './calendar'
 import { holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { DateLabel, lightSVG, renderCalendarSVG } from './render'
 import { readShifts, shiftOn } from './shifts'
+import { ShiftBadge } from './shift-badge'
 
 async function run() {
   const today = chinaToday(), settings = readAppearance(), mode = widgetLayout(Widget.family)
@@ -16,7 +17,8 @@ async function run() {
   const holidays = await Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO)))
   if (Widget.family.startsWith('accessory')) {
     const i = dayInfo(today)
-    Widget.present(<Text font={11}>{`${today.month}月${today.day}日 ${i.label} ${i.footer}${shift ? ' · ' + shift.name : ''}`}</Text>, {
+    const summary = <Text font={11}>{`${today.month}月${today.day}日 ${i.label} ${i.footer}`}</Text>
+    Widget.present(shift ? <HStack spacing={3}>{summary}<ShiftBadge shift={shift} width={34} height={14} font={9} /></HStack> : summary, {
       reloadPolicy: { policy: 'after', date: nextChinaMidnight() },
     })
     return
@@ -44,8 +46,7 @@ async function run() {
       </HStack>
       {shift ? <HStack spacing={4}>
         {dateText}<Spacer />
-        <Text font={9} fontWeight="medium" foregroundStyle="white" lineLimit={1} minScaleFactor={0.6}
-          frame={{ width: 32, height: 15 }} background={<RoundedRectangle cornerRadius={3} fill={shift.color} />}>{shift.name}</Text>
+        <ShiftBadge shift={shift} font={9} width={32} height={15} />
       </HStack> : dateText}
       <VStack alignment="leading" spacing={0}>
         <Text font={19} foregroundStyle={{ light: '#1c1c1e', dark: '#ffffff' }} lineLimit={1} minScaleFactor={0.75}>{`${today.year}年${today.month}月`}</Text>

@@ -4,6 +4,8 @@ import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './hol
 import { VERSION } from './version'
 import { ShiftRead, ShiftSettings, readShifts, shiftOn } from './shifts'
 import { ShiftSettingsPage } from './shift-settings'
+import { ShiftBadge } from './shift-badge'
+import { ShiftEditor, createShiftEditor } from './shift-editor'
 
 let busy = false
 async function feedback(action: () => Promise<string | null>) {
@@ -33,7 +35,7 @@ function PreviewButton() {
     void feedback(async () => { await Widget.preview({ family: 'systemMedium' }); return null })
   }} />
 }
-function SettingsPage({ settings, setSettings, shiftState, setShiftState }: { settings: Appearance; setSettings: (value: Appearance) => void; shiftState: ShiftRead; setShiftState: (value: ShiftRead) => void }) {
+function SettingsPage({ settings, setSettings, shiftState, setShiftState, shiftEditor }: { settings: Appearance; setSettings: (value: Appearance) => void; shiftState: ShiftRead; setShiftState: (value: ShiftRead) => void; shiftEditor: ShiftEditor }) {
   return <List navigationTitle="日历设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
       scrollContentBackground="hidden" background="systemGroupedBackground">
       <Section header={<HStack><Text>设置</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
@@ -61,9 +63,10 @@ function SettingsPage({ settings, setSettings, shiftState, setShiftState }: { se
         </HStack>
       </Section>
       <Section header={<Text>倒班</Text>}>
-        <NavigationLink destination={<ShiftSettingsPage state={shiftState} onSaved={setShiftState} />}>
+        <NavigationLink destination={<ShiftSettingsPage editor={shiftEditor} onSaved={setShiftState} />}>
           <RowLabel title="倒班设置" symbol="arrow.triangle.2.circlepath" color="systemGreen" />
         </NavigationLink>
+        {shiftState.error ? <Text font={13} foregroundStyle="systemOrange">{shiftState.error}</Text> : null}
       </Section>
       <Section header={<Text>预览组件</Text>}><PreviewButton /></Section>
       <Section header={<Text>假日数据</Text>}>
@@ -89,20 +92,20 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
   const color = isToday ? 'white' : 'label'
   const label = isToday || info.lunarDay === 1 ? info.lunarLabel : info.label
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
+  const calendarOpacity = shift ? { opacity: isToday ? 1 : dim } : {}
   const shape = settings.todayShape === 'circle'
-    ? <Circle fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
-    : <RoundedRectangle cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
-  return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={isToday ? 1 : dim}
+    ? <Circle {...calendarOpacity} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
+    : <RoundedRectangle {...calendarOpacity} cornerRadius={10} fill={isToday ? '#e74748' : 'systemGray5'} frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
+  return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={shift ? 1 : isToday ? 1 : dim}
     background={isToday || isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
     // 休/班与小组件一致：所有日期都贴在42点红底的右上外缘，保留约1点间隙。
-    overlay={mark ? { alignment: 'center', content: <Text font={9} fontWeight="heavy" foregroundStyle={markColor}
+    overlay={mark ? { alignment: 'center', content: <Text {...calendarOpacity} font={9} fontWeight="heavy" foregroundStyle={markColor}
       offset={{ x: 21, y: -18 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
-    <Text font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
-    <Text font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
+    <Text {...calendarOpacity} font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}>{String(d.day)}</Text>
+    <Text {...calendarOpacity} font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}
       overlay={info.lunarDay === 1 ? { alignment: 'bottom', content: <Rectangle fill={isToday ? 'white' : '#e74748'}
         frame={{ width: 12, height: 2 }} offset={{ x: 0, y: 3 }} /> } : undefined}>{label}</Text>
-    {shift ? <Text font={8} fontWeight="medium" foregroundStyle="white" lineLimit={1} minScaleFactor={0.6}
-      frame={{ maxWidth: 'infinity', height: 11 }} background={<RoundedRectangle cornerRadius={3} fill={shift.color} />}>{shift.name}</Text> : null}
+    {shift ? <ShiftBadge shift={shift} font={8} height={11} /> : null}
   </VStack>
 }
 function HomePage() {
@@ -113,6 +116,7 @@ function HomePage() {
   const [selected, setSelected] = useState<CivilDate>(today)
   const [holidays, setHolidays] = useState<HolidayResult[]>([])
   const [shiftState, setShiftState] = useState(readShifts())
+  const [shiftEditor] = useState(createShiftEditor(shiftState))
   const days = monthGrid(view, settings.weekStart)
   useEffect(() => {
     let cancelled = false
@@ -131,7 +135,7 @@ function HomePage() {
     <ScrollView background="systemBackground"
       toolbar={{
         cancellationAction: <Button title="" systemImage="xmark" action={dismiss} />,
-        topBarTrailing: <NavigationLink destination={<SettingsPage settings={settings} setSettings={setSettings} shiftState={shiftState} setShiftState={setShiftState} />}>
+        topBarTrailing: <NavigationLink destination={<SettingsPage settings={settings} setSettings={setSettings} shiftState={shiftState} setShiftState={setShiftState} shiftEditor={shiftEditor} />}>
           <Image systemName="ellipsis.circle" />
         </NavigationLink>,
       }}>
@@ -162,7 +166,10 @@ function HomePage() {
               holidays={holidays} settings={settings} shifts={shiftState.config} onSelect={value => setSelected(value)} />)}
           </HStack>)}
         </VStack>
-        <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}${selectedShift ? ' · 倒班：' + selectedShift.name : ''}`}</Text>
+        {selectedShift ? <HStack spacing={4}>
+          <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`}</Text>
+          <ShiftBadge shift={selectedShift} width={48} height={18} font={11} />
+        </HStack> : <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`}</Text>}
       </VStack>
     </ScrollView>
   </NavigationStack>

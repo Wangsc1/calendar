@@ -1,4 +1,4 @@
-import { Button, ForEach, HStack, List, Navigation, Picker, RoundedRectangle, Section, Text, TextField, VStack, Widget, ZStack, useState } from 'scripting'
+import { Button, ForEach, HStack, List, Navigation, Picker, RoundedRectangle, Section, Text, TextField, VStack, Widget, ZStack, useMemo, useState } from 'scripting'
 import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, MAX_SHIFTS, removeShift } from './shifts'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, commitShiftEditor } from './shift-editor'
@@ -98,6 +98,19 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
     if (result.changed) Widget.reloadAll()
     if (result.error) void Dialog.alert({ title: '倒班设置未保存', message: result.error })
   }
+  // 弹窗开关不改变班次：复用ForEach、构建回调及行的JS节点，不因弹窗开关重新创建。
+  // 编辑/增删时shifts数组才变化；回调读取稳定editor/deletion，不捕获弹窗请求状态。
+  const shiftRows = useMemo(() => {
+    const rows = draft.shifts.map((s, i) => <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
+      allowsFullSwipe: false,
+      actions: [<Button title="删除班次" role="destructive" action={() => requestDelete(s)} />],
+    }}>
+      <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
+        onChanged={(name: string) => editShift(s.id, { name })} />
+      <ShiftAppearance shift={s} onChanged={update => editShift(s.id, update)} />
+    </VStack>)
+    return <ForEach count={rows.length} itemBuilder={i => rows[i]} />
+  }, [draft.shifts, editor])
   return <List navigationTitle="倒班设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
     scrollContentBackground="hidden" background="systemGroupedBackground"
     onAppear={() => { editor.visible = true; applyDraft(editor.draft); applyDate(editor.dateText); setNotice(editor.saved.error || '') }}
@@ -120,17 +133,7 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       {notice ? <Text font={13} foregroundStyle="systemOrange">{notice}</Text> : null}
     </Section>
     <Section header={<Text>班次设置</Text>}>
-      <ForEach count={draft.shifts.length} itemBuilder={i => {
-        const s = draft.shifts[i]
-        return <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
-          allowsFullSwipe: false,
-          actions: [<Button title="删除班次" role="destructive" action={() => requestDelete(s)} />],
-        }}>
-          <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
-            onChanged={(name: string) => editShift(s.id, { name })} />
-          <ShiftAppearance shift={s} onChanged={update => editShift(s.id, update)} />
-        </VStack>
-      }} />
+      {shiftRows}
       <Button title="新建班次" action={() => {
         if (editor.draft.shifts.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
         let n = 1

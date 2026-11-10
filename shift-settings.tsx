@@ -1,4 +1,4 @@
-import { Button, EditMode, ForEach, HStack, Image, List, Picker, RoundedRectangle, Section, Spacer, Text, TextField, Transition, VStack, Widget, ZStack, useEffect, useObservable, useState, withAnimation } from 'scripting'
+import { Button, EditButton, ForEach, HStack, Image, List, Picker, RoundedRectangle, Section, Spacer, Text, TextField, VStack, Widget, ZStack, useMemo, useState } from 'scripting'
 import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, LEGACY_SHIFT_COLORS, MAX_SHIFTS } from './shifts'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, commitShiftEditor, orderedShiftDraft } from './shift-editor'
@@ -16,7 +16,7 @@ function ColorSwatch({ color, selected, onSelect }: { color: string; selected: b
   </Button>
 }
 function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (update: Partial<Pick<Shift, 'name' | 'color' | 'style'>>) => void }) {
-  const colorsExpanded = useObservable(false)
+  const [colorsExpanded, setColorsExpanded] = useState(false)
   return <VStack alignment="leading" spacing={8}>
     <HStack spacing={12}>
       {(['normal', 'transparent'] as ShiftStyle[]).map(style => <Button buttonStyle="plain" action={() => onChanged({ style })}>
@@ -27,21 +27,19 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
         </ZStack>
       </Button>)}
       <Spacer />
-      <Button buttonStyle="plain" action={() => { void withAnimation(() => colorsExpanded.setValue(!colorsExpanded.value)) }}>
-        <Image systemName="chevron.down" foregroundStyle="secondaryLabel" rotationEffect={colorsExpanded.value ? 180 : 0}
+      <Button buttonStyle="plain" action={() => setColorsExpanded(!colorsExpanded)}>
+        <Image systemName={colorsExpanded ? 'chevron.up' : 'chevron.down'} foregroundStyle="secondaryLabel"
           frame={{ width: 44, height: 32 }} />
       </Button>
     </HStack>
-    {colorsExpanded.value ? <VStack spacing={8} transition={Transition.opacity()}>
-      {Array.from({ length: Math.ceil(APPEARANCE_COLORS.length / 8) }, (_, row) => <HStack spacing={6} frame={{ maxWidth: 'infinity' }}>
-        {Array.from({ length: 8 }, (_, col) => {
-          const c = APPEARANCE_COLORS[row * 8 + col]
-          return c ? <ColorSwatch color={c.value} selected={shift.color === c.value}
-            onSelect={() => onChanged({ color: c.value })} />
-            : <Spacer frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 30, maxHeight: 30 }} />
-        })}
-      </HStack>)}
-    </VStack> : null}
+    {colorsExpanded ? Array.from({ length: Math.ceil(APPEARANCE_COLORS.length / 8) }, (_, row) => <HStack spacing={6} frame={{ maxWidth: 'infinity' }}>
+      {Array.from({ length: 8 }, (_, col) => {
+        const c = APPEARANCE_COLORS[row * 8 + col]
+        return c ? <ColorSwatch color={c.value} selected={shift.color === c.value}
+          onSelect={() => onChanged({ color: c.value })} />
+          : <Spacer frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 30, maxHeight: 30 }} />
+      })}
+    </HStack>) : null}
   </VStack>
 }
 
@@ -49,35 +47,34 @@ type DeleteRequest = { shift: Shift; handled: boolean }
 
 export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; onSaved: (value: ShiftRead) => void }) {
   const [draft, applyDraft] = useState<ShiftSettings>(editor.draft)
-  const shiftItems = useObservable<Shift[]>(() => editor.draft.shifts)
-  const editMode = useObservable(() => EditMode.inactive())
   const [notice, setNotice] = useState(editor.saved.error || '')
   const [deletion] = useState<{ current: DeleteRequest | null; presented: boolean }>({ current: null, presented: false })
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
   const [deletePresented, setDeletePresented] = useState(false)
   // 更新稳定会话后再重绘；旧onDisappear闭包也会读取最新输入，不用effect清理保存。
-  const setDraft = (value: ShiftSettings) => {
-    editor.draft = orderedShiftDraft(value)
-    if (shiftItems.value !== editor.draft.shifts) shiftItems.setValue(editor.draft.shifts)
-    applyDraft(editor.draft)
+  const setDraft = (value: ShiftSettings) => { editor.draft = orderedShiftDraft(value); applyDraft(editor.draft) }
+  const moveShifts = (indices: number[], newOffset: number) => {
+    if (!editor.visible || deletion.presented) return
+    const current = editor.draft.shifts
+    if (!indices.length || new Set(indices).size !== indices.length || indices.some(i => !Number.isInteger(i) || i < 0 || i >= current.length) ||
+      !Number.isInteger(newOffset) || newOffset < 0 || newOffset > current.length) return
+    const sorted = [...indices].sort((a, b) => a - b), moving = sorted.map(i => current[i])
+    const next = current.filter((_, i) => !sorted.includes(i))
+    // 与AI账号排序相同：原生目标偏移指向原列表，先扣除目标之前已移出的项。
+    next.splice(newOffset - sorted.filter(i => i < newOffset).length, 0, ...moving)
+    if (next.every((s, i) => s === current[i])) return
+    setDraft({ ...editor.draft, shifts: next })
   }
-  // data-backed ForEach由原生移动Observable数组；只同步草稿，不再用onMove二次排列。
-  useEffect(() => {
-    const changed = (shifts: Shift[]) => { editor.draft = orderedShiftDraft({ ...editor.draft, shifts }) }
-    shiftItems.subscribe(changed)
-    return () => shiftItems.unsubscribe(changed)
-  }, [shiftItems, editor])
-  const editShift = (shift: Shift, update: Partial<Pick<Shift, 'name' | 'color' | 'style'>>) => {
-    if (!editor.visible || !shiftItems.value.includes(shift)) return
-    setDraft({ ...editor.draft, shifts: shiftItems.value.map(s => s === shift ? { ...s, ...update } : s) })
+  const editShift = (id: string, update: Partial<Pick<Shift, 'name' | 'color' | 'style'>>) => {
+    setDraft({ ...editor.draft, shifts: editor.draft.shifts.map(s => s.id === id ? { ...s, ...update } : s) })
   }
   const showDeleteConfirmation = (presented: boolean) => {
     deletion.presented = presented
     setDeletePresented(presented)
   }
   const requestDelete = (shift: Shift) => {
-    if (deletion.presented || !editor.visible || !shiftItems.value.includes(shift)) return
-    if (shiftItems.value.length <= 1) { setNotice('至少需保留一个班次。'); return }
+    if (deletion.presented || !editor.visible || !editor.draft.shifts.includes(shift)) return
+    if (editor.draft.shifts.length <= 1) { setNotice('至少需保留一个班次。'); return }
     const request: DeleteRequest = { shift, handled: false }
     deletion.current = request
     setDeleteRequest(request)
@@ -88,30 +85,32 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
     if (request.handled || deletion.current !== request) return
     request.handled = true
     showDeleteConfirmation(false)
-    if (!confirmed || !editor.visible || !shiftItems.value.includes(request.shift)) return
-    if (shiftItems.value.length <= 1) { setNotice('至少需保留一个班次。'); return }
-    setDraft({ ...editor.draft, shifts: shiftItems.value.filter(s => s.id !== request.shift.id) })
+    if (!confirmed || !editor.visible || !editor.draft.shifts.includes(request.shift)) return
+    if (editor.draft.shifts.length <= 1) { setNotice('至少需保留一个班次。'); return }
+    setDraft({ ...editor.draft, shifts: editor.draft.shifts.filter(s => s.id !== request.shift.id) })
   }
   const leave = () => {
     if (deletion.presented || !editor.visible) return
-    // 返回也从绑定数组取最终值，不依赖订阅回调与页面消失的调度先后。
-    editor.draft = orderedShiftDraft({ ...editor.draft, shifts: shiftItems.value })
     editor.visible = false
     const previous = editor.saved, result = commitShiftEditor(editor)
     if (result.state !== previous) onSaved(result.state)
     if (result.changed) Widget.reloadAll()
     if (result.error) void Dialog.alert({ title: '倒班设置未保存', message: result.error })
   }
-  const shiftRows = <ForEach data={shiftItems} editActions="move" builder={(s, i) => <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
+  // 弹窗开关不改变班次：复用ForEach、构建回调及行的JS节点，不因弹窗开关重新创建。
+  // 编辑/增删时shifts数组才变化；回调读取稳定editor/deletion，不捕获弹窗请求状态。
+  const shiftRows = useMemo(() => {
+    const rows = draft.shifts.map((s, i) => <VStack key={s.id} alignment="leading" spacing={6} trailingSwipeActions={{
       allowsFullSwipe: false,
       actions: [<Button title="删除班次" tint="red" action={() => requestDelete(s)} />],
     }}>
       <TextField title={`班次${i + 1}`} value={s.name} prompt="请输入班次名称"
-        onChanged={(name: string) => editShift(s, { name })} />
-      <ShiftAppearance shift={s} onChanged={update => editShift(s, update)} />
-    </VStack>} />
+        onChanged={(name: string) => editShift(s.id, { name })} />
+      <ShiftAppearance shift={s} onChanged={update => editShift(s.id, update)} />
+    </VStack>)
+    return <ForEach count={rows.length} itemBuilder={i => rows[i]} onMove={moveShifts} />
+  }, [draft.shifts, editor])
   return <List navigationTitle="倒班设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
-    environments={{ editMode }}
     scrollContentBackground="hidden" background="systemGroupedBackground"
     onAppear={() => { editor.visible = true; setDraft(editor.draft); setNotice(editor.saved.error || '') }}
     onDisappear={leave}
@@ -132,16 +131,15 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       </Picker>
       {notice ? <Text font={13} foregroundStyle="systemOrange">{notice}</Text> : null}
     </Section>
-    <Section header={<HStack frame={{ maxWidth: 'infinity' }}><Text>班次设置</Text><Spacer /><Button buttonStyle="plain" title={editMode.value.isEditing ? '完成' : '编辑排序'}
-        action={() => { void withAnimation(() => editMode.setValue(editMode.value.isEditing ? EditMode.inactive() : EditMode.active())) }} /></HStack>}
+    <Section header={<HStack frame={{ maxWidth: 'infinity' }}><Text>班次设置</Text><Spacer /><EditButton /></HStack>}
       footer={<Text>班次循环按照以上排序从当日开始循环</Text>}>
       {shiftRows}
       <Button title="新建班次" action={() => {
-        if (shiftItems.value.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
+        if (editor.draft.shifts.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
         let n = 1
-        while (shiftItems.value.some(s => s.id === `s${n}`)) n++
+        while (editor.draft.shifts.some(s => s.id === `s${n}`)) n++
         // 新班次追加到每日循环；旧行回调另有对象身份保护，复用空闲ID也不会误删新类型。
-        setDraft({ ...editor.draft, shifts: [...shiftItems.value, { id: `s${n}`, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
+        setDraft({ ...editor.draft, shifts: [...editor.draft.shifts, { id: `s${n}`, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
       }} />
     </Section>
   </List>

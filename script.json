@@ -2,7 +2,7 @@
   "name": "calendar",
   "icon": "calendar",
   "color": "#e74748",
-  "version": "1.8.21",
+  "version": "1.8.22",
   "description": "Chinese lunar and rotating shift calendar with solar terms, holiday updates, home screen widgets and light/dark themes",
   "localizedNames": {
     "zh": "日历"

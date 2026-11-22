@@ -96,11 +96,8 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
   const label = isToday || info.lunarDay === 1 ? info.lunarLabel : info.label
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
   const calendarOpacity = shift ? { opacity: isToday ? 1 : dim } : {}
-  const shape = settings.todayShape === 'circle'
-    ? <Circle {...calendarOpacity} fill="systemGray5" frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
-    : <RoundedRectangle {...calendarOpacity} cornerRadius={10} fill="systemGray5" frame={{ width: 42, height: 42 }} offset={{ x: 0, y: 1.5 }} />
   return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={shift ? 1 : isToday ? 1 : dim}
-    background={isSelected ? shape : undefined} contentShape="rect" onTapGesture={() => onSelect(d)}
+    contentShape="rect" onTapGesture={() => onSelect(d)}
     // 休/班保留原有右上角偏移，不随今日或选择态改变。
     overlay={mark ? { alignment: 'center', content: <Text {...calendarOpacity} font={9} fontWeight="heavy" foregroundStyle={markColor}
       offset={{ x: 21, y: -18 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
@@ -111,9 +108,11 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
       const todayPosition = { x: g.x, y: g.todayCenterY }
       const light = shift ? shiftPaint(shift, 'light') : null, dark = shift ? shiftPaint(shift, 'dark') : null
       return <ZStack frame={{ width: g.width, height: g.height }}>
-        {isToday ? settings.todayShape === 'circle'
-          ? <Circle fill="#e74748" frame={todayFrame} position={todayPosition} />
-          : <RoundedRectangle cornerRadius={CALENDAR_TODAY_CORNER} fill="#e74748" frame={todayFrame} position={todayPosition} /> : null}
+        {/* 今日与非今日选择共用同一几何底形，避免整格background把灰圈中心移向班次。 */}
+        {isToday || isSelected ? settings.todayShape === 'circle'
+          ? <Circle {...(isToday ? {} : calendarOpacity)} fill={isToday ? '#e74748' : 'systemGray5'} frame={todayFrame} position={todayPosition} />
+          : <RoundedRectangle {...(isToday ? {} : calendarOpacity)} cornerRadius={CALENDAR_TODAY_CORNER}
+              fill={isToday ? '#e74748' : 'systemGray5'} frame={todayFrame} position={todayPosition} /> : null}
         <Text {...calendarOpacity} font={18} fontWeight="semibold" foregroundStyle={color} lineLimit={1}
           frame={{ width: g.width, height: 22 }} position={{ x: g.x, y: g.dateCenterY }}>{String(d.day)}</Text>
         <Text {...calendarOpacity} font={10} fontWeight="medium" foregroundStyle={color} lineLimit={1} minScaleFactor={0.6}

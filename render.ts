@@ -2,7 +2,7 @@ import { CivilDate, dayInfo, dateKey, layoutDates, weekOrder, WEEKDAY_NAMES, isW
 import { HolidayResult, holidayOn } from './holidays'
 import { ShiftSettings, shiftOn } from './shifts'
 import { shiftLabelFont, shiftPaint } from './shift-style'
-import { CALENDAR_SHIFT_INSET, CALENDAR_TODAY_CORNER, calendarHighlight } from './calendar-geometry'
+import { CALENDAR_SHIFT_INSET, CALENDAR_TODAY_CORNER } from './calendar-geometry'
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function text(x: number, y: number, s: string, size: number, color = '#f7f7f8', weight = 400, stroke = 0): string {
   const one = (dx: number, dy: number) => `<text x="${x + dx}" y="${y + dy}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(s)}</text>`
@@ -39,14 +39,35 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     out.push(text(w / 2, h / 2, '农历支持1901—2099年', fit(12, '农历支持1901—2099年', w - 12)))
   } else {
     const month = mode === 'month', col = w / 7
-    // 中号有班次时两周整体上移3点，页脚不动，净空增加3点；不改变格内度量。
-    const weekLift = !month && shiftOn(today, shifts) ? 3 : 0
-    const headerY = month ? 39 : 15, firstY = month ? 65 : 46
-    const originalRowGap = month ? (h - 43 - firstY) / 5 : h - 43 - firstY
-    // 大号页脚移走后，末行下移12点，5处行间隙各增加2.4点；首行不动。
-    const rowGap = month ? originalRowGap + 12 / 5 : originalRowGap
-    // 回收标题下方7点分给5个行间隙（各+1.4）；格内度量仍沿用原72点起行，红底/农历/标签不变。
-    const cellGap = month ? (h - 43 - 72) / 5 : originalRowGap
+    const headerY = month ? 39 : 15, rows = month ? 6 : 2
+    const gridTop = headerY + (month ? 6 : 7)
+    const gridBot = month ? h - 2 : h - 3 - f.today * .92 - 4
+    const rowH = (gridBot - gridTop) / rows
+    const wf = settings.fonts.week
+    const hasGridShift = days.some(d => Boolean(shiftOn(d, shifts)))
+    // 统一按行高计算红底与倒班条：红底严格居中包住公历+农历视觉合块，并在倒班开启时与下方班次条保持净空。
+    const tagHeight = hasGridShift ? Math.min(11, Math.max(7.5, rowH * .215)) : 0
+    const circleToTagGap = hasGridShift ? Math.min(3.2, Math.max(2, rowH * .062)) : 0
+    const interRowGap = hasGridShift ? Math.min(3.5, Math.max(1.8, rowH * .055)) : Math.min(6, Math.max(2.5, rowH * .1))
+    const diameter = hasGridShift
+      ? Math.min(34.5, rowH - tagHeight - circleToTagGap - interRowGap, col - 4)
+      : Math.min(38, rowH - interRowGap, col - 4)
+    const radius = Math.max(4, diameter / 2)
+    const size = Math.max(1, hasGridShift ? Math.min(17, diameter * .49) : Math.min(17, diameter * .47))
+    const displayLunarSize = hasGridShift ? Math.min(wf.lunar, 8, diameter * .24) : Math.min(wf.lunar, diameter * .25)
+    const inkGap = hasGridShift ? Math.max(1.4, size * .135) : Math.max(2, size * .2)
+    // 日期采用原生Text（中心在 y - 0.35*size，iOS字形顶/底相对基线 y 为 -0.722*size 至 -0.018*size），
+    // 农历采用SVG text（中文墨迹相对基线约 -0.86*fs 至 +0.10*fs），令合块视觉中心严格等于红底中心。
+    const dateInkH = size * .704, lunarInkH = displayLunarSize * .96
+    const totalInkH = dateInkH + inkGap + lunarInkH
+    const contentH = hasGridShift ? diameter + circleToTagGap + tagHeight : diameter
+    const contentTop = (rowH - contentH) / 2
+    const centerYOffset = contentTop + radius
+    const inkTopOffset = centerYOffset - totalInkH / 2
+    const dateYOffset = inkTopOffset + size * .722
+    const lunarYOffset = inkTopOffset + dateInkH + inkGap + displayLunarSize * .86
+    const lineYOffset = lunarYOffset + displayLunarSize * .1 + (hasGridShift ? 1.4 : 1.8)
+    const tagTopOffset = contentTop + diameter + circleToTagGap
     // 大号合并当天农历信息，仍用原标题基线；长闰月等按可用宽度缩小字号。
     if (month) {
       const title = `${today.year}年${today.month}月 · ${dayInfo(today).footer}`
@@ -56,43 +77,29 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       out.push(text(col * (index + .5), headerY, `周${WEEKDAY_NAMES[day]}`, Math.min(f.weekday, (col - 4) / 2), isWeekend(day) ? '#94949a' : '#f3f3f5'))
     })
     days.forEach((d, index) => {
-      const info = dayInfo(d), x = col * ((index % 7) + .5), y = firstY + Math.floor(index / 7) * rowGap - weekLift
+      const info = dayInfo(d), x = col * ((index % 7) + .5)
+      const rowTop = gridTop + Math.floor(index / 7) * rowH
+      const y = rowTop + dateYOffset, centerY = rowTop + centerYOffset
       const current = dateKey(today) === info.key, outside = month && d.month !== today.month
       const color = current ? '#ffffff' : outside ? '#626269' : isWeekend(info.weekday) ? '#94949a' : '#f7f7f8'
-      // 大号日期/农历字号、粗细及间距与中号一致。
-      const wf = settings.fonts.week
-      // 日期数字17点、半粗体；红底继续采用原18点布局，尺寸与位置不变。
-      const circleSize = Math.min(18, cellGap * .58, col * .62)
-      const size = Math.max(1, circleSize - 1), lunarSize = Math.min(wf.lunar, cellGap * .27)
       const label = current || info.lunarDay === 1 ? info.lunarLabel : info.label
-      const labelY = y + lunarSize + 6
-      // 今日红底以日期顶部到农历下划线的整体为中心；半径刚好包住下划线。
-      const lineHalf = 6, lineY = labelY + 3
-      const blockTop = y - circleSize * .75
-      // 首页、中号与大号使用同一包围规则；按实际文字块定位，不把班次条计入红底。
-      const { centerY, radius } = calendarHighlight(blockTop, lineY, circleSize * .95)
+      const lineHalf = 6
       if (current) out.push(todayShape(x, centerY, radius, settings))
       // 由原生Text绘制日期数字，与App首页同字体同字重。
       dateLabels.push({ x, y, size, text: String(d.day), color })
-      const shift = shiftOn(d, shifts)
-      // 开启排班时仅收紧格内农历间距，为第三行留白；日期、红底、休班及整体尺寸不变。
-      const displayLunarSize = shift ? Math.min(lunarSize, 8, cellGap * .2) : lunarSize
-      const displayLabelY = shift ? y + Math.min(displayLunarSize + 2, cellGap * .24) : labelY
+      const displayLabelY = rowTop + lunarYOffset
       out.push(text(x, displayLabelY, label, fit(displayLunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
-      const displayLineY = shift ? displayLabelY + 2 : lineY
+      const displayLineY = rowTop + lineYOffset
       if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${displayLineY}" x2="${x + lineHalf}" y2="${displayLineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
+      const shift = shiftOn(d, shifts)
       if (shift) {
-        const tagWidth = col - CALENDAR_SHIFT_INSET * 2, tagOffset = Math.min(15, cellGap * .34), tagTop = y + tagOffset
-        const baseTagHeight = Math.min(9, cellGap * .22)
-        // 沿用既有增高/边界限制；新增行距不再带动班次条变高。
-        const tagHeight = Math.min(baseTagHeight + 2, originalRowGap - size * .75 - tagOffset - .25, 40 - f.today * .88 - tagOffset - 1)
+        const tagWidth = col - CALENDAR_SHIFT_INSET * 2, tagTop = rowTop + tagTopOffset
         const tagFont = shiftLabelFont(shift.name, 8, tagWidth, tagHeight)
         const dark = shiftPaint(shift, 'dark'), light = shiftPaint(shift, 'light')
         out.push(`<g data-role="shift" data-date="${info.key}" data-light-background="${light.background}" data-light-foreground="${light.foreground}"><rect x="${x - tagWidth / 2}" y="${tagTop}" width="${tagWidth}" height="${tagHeight}" rx="2" fill="${dark.background}"/>`)
         out.push(text(x, tagTop + tagHeight / 2 + tagFont * .38, shift.name, tagFont, dark.foreground, 600), '</g>')
       }
-      // 休/班保持在日期右上角；今天时沿右上方向外推到红底外，不改其他日期位置。
-      // 所有日期统一使用今日红底外缘作为休/班定位基准，非今天不绘制红底。
+      // 休/班保持在日期右上角；所有日期统一使用今日红底外缘作为休/班定位基准，非今天不绘制红底。
       const half = 7.5 / 2, gap = 1, corner = (radius + gap) * Math.SQRT1_2
       const badgeX = Math.min(x + corner + half, x + col / 2 - half)
       const badgeY = centerY - corner - 1

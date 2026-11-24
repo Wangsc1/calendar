@@ -7,7 +7,7 @@ import { ShiftSettingsPage } from './shift-settings'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, createShiftEditor } from './shift-editor'
 import { CALENDAR_TODAY_CORNER } from './calendar-geometry'
-import { homeCellLayout } from './home-cell-layout'
+import { HOME_CELL_HEIGHT, HOME_HOLIDAY_OFFSET_Y, homeCellLayout } from './home-cell-layout'
 import { shiftLabelFont, shiftPaint } from './shift-style'
 
 let busy = false
@@ -96,13 +96,13 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
   const label = isToday || info.lunarDay === 1 ? info.lunarLabel : info.label
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
   const calendarOpacity = shift ? { opacity: isToday ? 1 : dim } : {}
-  return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 49, maxHeight: 49 }} opacity={shift ? 1 : isToday ? 1 : dim}
+  return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: HOME_CELL_HEIGHT, maxHeight: HOME_CELL_HEIGHT }} opacity={shift ? 1 : isToday ? 1 : dim}
     contentShape="rect" onTapGesture={() => onSelect(d)}
-    // 休/班保留原有右上角偏移，不随今日或选择态改变。
+    // 休/班保持在公历数字右上角相对位置，不随今日或选择态改变。
     overlay={mark ? { alignment: 'center', content: <Text {...calendarOpacity} font={9} fontWeight="heavy" foregroundStyle={markColor}
-      offset={{ x: 21, y: -18 }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
+      offset={{ x: 21, y: HOME_HOLIDAY_OFFSET_Y }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
     <GeometryReader>{proxy => {
-      // GeometryReader在已固定49点的整格中只读宽度，不再测Text/VStack背景的未知高度。
+      // GeometryReader在已固定56点的整格中只读宽度，不再测Text/VStack背景的未知高度。
       const g = homeCellLayout(proxy.size.width)
       const todayFrame = { width: g.todayDiameter, height: g.todayDiameter }
       const todayPosition = { x: g.x, y: g.todayCenterY }

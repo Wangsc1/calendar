@@ -52,8 +52,18 @@ export async function loadHoliday(year: number, io: HolidayIO, force = false, no
     return { data: fallback, source: fallback ? `${year}年离线${cachedAt ? '缓存' : '内置'}` : `${year}年休班未取得` }
   }
 }
+const holidayIndexCache = new WeakMap<HolidayData, Map<string, HolidayDay>>()
+function holidayMap(data: HolidayData): Map<string, HolidayDay> {
+  let map = holidayIndexCache.get(data)
+  if (!map) {
+    map = new Map(data.days.map(x => [x.date, x]))
+    holidayIndexCache.set(data, map)
+  }
+  return map
+}
 export function holidayOn(d: CivilDate, results: HolidayResult[]): HolidayDay | undefined {
-  return results.find(r => r.data?.year === d.year)?.data?.days.find(x => x.date === dateKey(d))
+  const data = results.find(r => r.data?.year === d.year)?.data
+  return data ? holidayMap(data).get(dateKey(d)) : undefined
 }
 export const scriptingHolidayIO: HolidayIO = {
   get: key => Storage.get<unknown>(key),

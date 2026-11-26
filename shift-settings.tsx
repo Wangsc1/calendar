@@ -6,6 +6,9 @@ import { ShiftEditor, commitShiftEditor, orderedShiftDraft } from './shift-edito
 
 // 仅合并展示色板：保留新色顺序，再追加未重复的合法旧色；不迁移任何已存颜色。
 const APPEARANCE_COLORS = [...SHIFT_COLORS, ...LEGACY_SHIFT_COLORS].filter((c, i, all) => all.findIndex(x => x.value === c.value) === i)
+const APPEARANCE_COLOR_ROWS = Array.from({ length: Math.ceil(APPEARANCE_COLORS.length / 8) }, (_, row) =>
+  Array.from({ length: 8 }, (_, col) => APPEARANCE_COLORS[row * 8 + col] ?? null),
+)
 
 function ColorSwatch({ color, selected, onSelect }: { color: string; selected: boolean; onSelect: () => void }) {
   return <Button buttonStyle="plain" action={onSelect} frame={{ minWidth: 0, maxWidth: 'infinity' }}>
@@ -33,13 +36,10 @@ function ShiftAppearance({ shift, onChanged }: { shift: Shift; onChanged: (updat
           frame={{ width: 44, height: 32 }} />
       </Button>
     </HStack>
-    {colorsExpanded ? Array.from({ length: Math.ceil(APPEARANCE_COLORS.length / 8) }, (_, row) => <HStack spacing={6} frame={{ maxWidth: 'infinity' }}>
-      {Array.from({ length: 8 }, (_, col) => {
-        const c = APPEARANCE_COLORS[row * 8 + col]
-        return c ? <ColorSwatch color={c.value} selected={shift.color === c.value}
-          onSelect={() => onChanged({ color: c.value })} />
-          : <Spacer frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 30, maxHeight: 30 }} />
-      })}
+    {colorsExpanded ? APPEARANCE_COLOR_ROWS.map(row => <HStack spacing={6} frame={{ maxWidth: 'infinity' }}>
+      {row.map(c => c ? <ColorSwatch color={c.value} selected={shift.color === c.value}
+        onSelect={() => onChanged({ color: c.value })} />
+        : <Spacer frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: 30, maxHeight: 30 }} />)}
     </HStack>) : null}
   </VStack>
 }

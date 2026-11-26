@@ -1,4 +1,4 @@
-import { Button, Circle, GeometryReader, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, ZStack, useEffect, useState } from 'scripting'
+import { Button, Circle, GeometryReader, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, ZStack, useEffect, useMemo, useState } from 'scripting'
 import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
@@ -140,7 +140,7 @@ function HomePage() {
   const [holidaySession] = useState({ firstLoad: true })
   const [shiftState, setShiftState] = useState(readShifts())
   const [shiftEditor] = useState(createShiftEditor(shiftState))
-  const days = monthGrid(view, settings.weekStart)
+  const days = useMemo(() => monthGrid(view, settings.weekStart), [view.year, view.month, settings.weekStart])
   useEffect(() => {
     let cancelled = false
     const years = Array.from(new Set(days.map(d => d.year)))
@@ -154,14 +154,15 @@ function HomePage() {
       }
     })
     return () => { cancelled = true }
-  }, [view.year, view.month, settings.weekStart])
+  }, [days])
   const move = (n: number) => {
     const next = shiftMonth(view, n)
     if (next.year < MIN_YEAR || next.year > MAX_YEAR) return
     setView(next)
   }
-  const info = dayInfo(selected), selectedShift = shiftOn(selected, shiftState.config)
-  const rows = Array.from({ length: 6 }, (_, r) => days.slice(r * 7, r * 7 + 7))
+  const info = dayInfo(selected), selectedKey = dateKey(selected), selectedShift = shiftOn(selected, shiftState.config)
+  const selectedText = `${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`
+  const rows = useMemo(() => Array.from({ length: 6 }, (_, r) => days.slice(r * 7, r * 7 + 7)), [days])
   return <NavigationStack>
     <ScrollView background="systemBackground"
       toolbar={{
@@ -193,14 +194,14 @@ function HomePage() {
               foregroundStyle={isWeekend(day) ? 'secondaryLabel' : 'label'}>{`周${WEEKDAY_NAMES[day]}`}</Text>)}
           </HStack>
           {rows.map(row => <HStack spacing={0} frame={{ maxWidth: 'infinity' }}>
-            {row.map(d => <DayCell d={d} month={view.month} today={todayKey} selected={dateKey(selected)}
-              holidays={holidays} settings={settings} shifts={shiftState.config} onSelect={value => setSelected(value)} />)}
+            {row.map(d => <DayCell d={d} month={view.month} today={todayKey} selected={selectedKey}
+              holidays={holidays} settings={settings} shifts={shiftState.config} onSelect={setSelected} />)}
           </HStack>)}
         </VStack>
         {selectedShift ? <HStack spacing={4}>
-          <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`}</Text>
+          <Text font={14} foregroundStyle="secondaryLabel">{selectedText}</Text>
           <ShiftBadge shift={selectedShift} width={48} height={18} font={11} />
-        </HStack> : <Text font={14} foregroundStyle="secondaryLabel">{`${selected.year}年${selected.month}月${selected.day}日 ${info.footer}${info.festivals.length ? ' ' + info.festivals.join(' ') : ''}${info.term ? ' ' + info.term : ''}`}</Text>}
+        </HStack> : <Text font={14} foregroundStyle="secondaryLabel">{selectedText}</Text>}
       </VStack>
     </ScrollView>
   </NavigationStack>

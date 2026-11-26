@@ -1,4 +1,4 @@
-import { CivilDate, MIN_YEAR, MAX_YEAR, dateKey } from './calendar'
+import { CivilDate, MIN_YEAR, MAX_YEAR } from './calendar'
 
 export const SHIFTS_KEY = 'calendar.shifts.v1'
 export const MAX_SHIFTS = 12
@@ -19,6 +19,8 @@ export const SHIFT_COLORS = [
   ['浅青', '#82dbe1'], ['深绿', '#498046'], ['墨青', '#2f605d'], ['海蓝', '#3b79c4'],
   ['亮紫', '#5819ee'], ['深蓝', '#1b43c6'], ['深红', '#5b0e08'], ['砖红', '#96504e'],
 ].map(([name, value]) => ({ name, value }))
+const VALID_SHIFT_COLOR_SET = new Set([...SHIFT_COLORS, ...LEGACY_SHIFT_COLORS].map(c => c.value))
+const SHIFT_LOOKUP_CACHE = new WeakMap<ShiftSettings, { anchorUtc: number; byId: Map<string, Shift> } | null>()
 export type ShiftStyle = 'normal' | 'transparent'
 export type Shift = { id: string; name: string; color: string; style?: ShiftStyle }
 export type ShiftSettings = {
@@ -51,7 +53,7 @@ export function validateShifts(raw: unknown): ShiftSettings {
     if (!s || typeof s.id !== 'string' || !/^s\d{1,4}$/.test(s.id) || ids.has(s.id) ||
       typeof s.name !== 'string' || !s.name.trim() || Array.from(s.name.trim()).length > 4 ||
       /[\u0000-\u001f\u007f]/.test(s.name) || names.has(s.name.trim()) ||
-      ![...SHIFT_COLORS, ...LEGACY_SHIFT_COLORS].some(c => c.value === s.color) ||
+      !VALID_SHIFT_COLOR_SET.has(s.color) ||
       (s.style !== undefined && s.style !== 'normal' && s.style !== 'transparent')) throw new Error('班次名称须唯一、1—4字，颜色和样式须从列表选择')
     ids.add(s.id); names.add(s.name.trim())
     return { id: s.id, name: s.name.trim(), color: s.color, style: s.style ?? 'normal' }
@@ -81,21 +83,22 @@ export function shiftsReady(config: ShiftSettings): boolean {
 }
 export function shiftOn(d: CivilDate, config?: ShiftSettings): Shift | undefined {
   if (!config || !shiftsReady(config)) return undefined
-  const anchor = parseShiftDate(config.anchorDate!)
-  if (!anchor || !parseShiftDate(dateKey(d))) return undefined
-  const delta = (Date.UTC(d.year, d.month - 1, d.day) - Date.UTC(anchor.year, anchor.month - 1, anchor.day)) / 86400000
+  let lookup = SHIFT_LOOKUP_CACHE.get(config)
+  if (lookup === undefined) {
+    const anchor = parseShiftDate(config.anchorDate!)
+    lookup = anchor ? {
+      anchorUtc: Date.UTC(anchor.year, anchor.month - 1, anchor.day),
+      byId: new Map(config.shifts.map(s => [s.id, s])),
+    } : null
+    SHIFT_LOOKUP_CACHE.set(config, lookup)
+  }
+  if (!lookup) return undefined
+  const targetUtc = Date.UTC(d.year, d.month - 1, d.day)
+  if (d.year < MIN_YEAR || d.year > MAX_YEAR) return undefined
+  const check = new Date(targetUtc)
+  if (check.getUTCFullYear() !== d.year || check.getUTCMonth() + 1 !== d.month || check.getUTCDate() !== d.day) return undefined
+  const delta = (targetUtc - lookup.anchorUtc) / 86400000
   const length = config.cycle.length
   const index = ((delta + config.anchorIndex!) % length + length) % length
-  return config.shifts.find(s => s.id === config.cycle[index])
-}
-// 改动循环后清除位置，必须由用户重新确认；同名班次的不同重复位置不混为一谈。
-export function replaceCycle(config: ShiftSettings, cycle: string[]): ShiftSettings {
-  return { ...config, cycle, anchorIndex: null }
-}
-export function removeShift(config: ShiftSettings, id: string): ShiftSettings {
-  // 确认框返回后数据可能已变，最终更新也必须保证至少一个班次；陈旧删除是空操作。
-  if (config.shifts.length <= 1 || !config.shifts.some(s => s.id === id)) return config
-  const cycle = config.cycle.filter(item => item !== id)
-  const next = { ...config, shifts: config.shifts.filter(s => s.id !== id) }
-  return cycle.length === config.cycle.length ? next : replaceCycle(next, cycle)
+  return lookup.byId.get(config.cycle[index])
 }

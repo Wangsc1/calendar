@@ -88,8 +88,12 @@ const traditional: Record<string, string> = {
   '12-8': '腊八', '12-23': '小年(北)', '12-24': '小年(南)',
 }
 const solarFestivals: Record<string, string> = { '1-1': '元旦', '5-1': '劳动节', '10-1': '国庆节' }
+const dayInfoCache = new Map<string, DayInfo>()
 export function dayInfo(d: CivilDate): DayInfo {
   if (d.year < MIN_YEAR || d.year > MAX_YEAR) throw new Error(`农历支持${MIN_YEAR}—${MAX_YEAR}年`)
+  const key = dateKey(d)
+  const cached = dayInfoCache.get(key)
+  if (cached) return cached
   const l = Solar.fromYmd(d.year, d.month, d.day).getLunar()
   const m = l.getMonth(), day = l.getDay()
   const festivals: string[] = []
@@ -108,9 +112,12 @@ export function dayInfo(d: CivilDate): DayInfo {
   const lunarLabel = day === 1 ? lunarMonth : l.getDayInChinese()
   // 格子优先传统/公历节日，其次节气，再次农历；首页完整列表保留同日所有信息。
   const label = festivals[0] || term || lunarLabel
-  return { ...d, key: dateKey(d), weekday: weekday(d), lunarDay: day,
+  const info: DayInfo = { ...d, key, weekday: weekday(d), lunarDay: day,
     lunarLabel, festivals, term, label,
     footer: `${l.getYearInGanZhi()}${l.getYearShengXiao()}年 ${lunarMonth}${l.getDayInChinese()}` }
+  if (dayInfoCache.size >= 512) dayInfoCache.clear()
+  dayInfoCache.set(key, info)
+  return info
 }
 export function nextChinaMidnight(now = new Date()): Date {
   const d = addDays(chinaToday(now), 1)

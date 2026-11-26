@@ -44,7 +44,8 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     const gridBot = month ? h - 2 : h - 3 - f.today * .92 - 4
     const rowH = (gridBot - gridTop) / rows
     const wf = settings.fonts.week
-    const hasGridShift = days.some(d => Boolean(shiftOn(d, shifts)))
+    const dayShifts = days.map(d => shiftOn(d, shifts))
+    const hasGridShift = dayShifts.some(Boolean)
     // 统一按行高计算红底与倒班条：红底严格居中包住公历+农历视觉合块，并在倒班开启时与下方班次条保持净空。
     const tagHeight = hasGridShift ? Math.min(11, Math.max(7.5, rowH * .215)) : 0
     const circleToTagGap = hasGridShift ? Math.min(3.2, Math.max(2, rowH * .062)) : 0
@@ -76,11 +77,12 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     weekOrder(settings.weekStart).forEach((day, index) => {
       out.push(text(col * (index + .5), headerY, `周${WEEKDAY_NAMES[day]}`, Math.min(f.weekday, (col - 4) / 2), isWeekend(day) ? '#94949a' : '#f3f3f5'))
     })
+    const todayKey = dateKey(today)
     days.forEach((d, index) => {
       const info = dayInfo(d), x = col * ((index % 7) + .5)
       const rowTop = gridTop + Math.floor(index / 7) * rowH
       const y = rowTop + dateYOffset, centerY = rowTop + centerYOffset
-      const current = dateKey(today) === info.key, outside = month && d.month !== today.month
+      const current = todayKey === info.key, outside = month && d.month !== today.month
       const color = current ? '#ffffff' : outside ? '#626269' : isWeekend(info.weekday) ? '#94949a' : '#f7f7f8'
       const label = current || info.lunarDay === 1 ? info.lunarLabel : info.label
       const lineHalf = 6
@@ -91,7 +93,7 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       out.push(text(x, displayLabelY, label, fit(displayLunarSize, label, current ? Math.min(col - 6, radius * 1.6) : col - 6), color))
       const displayLineY = rowTop + lineYOffset
       if (info.lunarDay === 1) out.push(`<line x1="${x - lineHalf}" y1="${displayLineY}" x2="${x + lineHalf}" y2="${displayLineY}" stroke="${current ? '#ffffff' : '#e74748'}" stroke-width="2"/>`)
-      const shift = shiftOn(d, shifts)
+      const shift = dayShifts[index]
       if (shift) {
         const tagWidth = col - CALENDAR_SHIFT_INSET * 2, tagTop = rowTop + tagTopOffset
         const tagFont = shiftLabelFont(shift.name, 8, tagWidth, tagHeight)

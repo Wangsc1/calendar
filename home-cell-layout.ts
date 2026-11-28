@@ -9,12 +9,15 @@ export function homeCellLayout(width: number) {
   const x = width / 2
   const todayCenterY = 19, todayDiameter = 38
   const dateCenterY = 13.1, lunarCenterY = 27.1
+  const holidayOffsetX = Math.min(21, Math.max(14, width / 2 - 4.5))
   return {
     width, height: HOME_CELL_HEIGHT, x,
     dateCenterY,
     lunarCenterY,
     lunarLineY: 33.6,
     todayCenterY, todayDiameter,
+    holidayX: x + holidayOffsetX,
+    holidayY: HOME_CELL_HEIGHT / 2 + HOME_HOLIDAY_OFFSET_Y,
     shiftWidth: Math.max(0, width - CALENDAR_SHIFT_INSET * 2), shiftHeight: 13, shiftCenterY: 48.5,
   }
 }

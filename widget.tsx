@@ -17,10 +17,18 @@ async function run() {
   const holidays = await Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO)))
   if (Widget.family.startsWith('accessory')) {
     const i = dayInfo(today)
-    const summary = <Text font={11}>{`${today.month}月${today.day}日 ${i.label} ${i.footer}`}</Text>
-    Widget.present(shift ? <HStack spacing={3}>{summary}<ShiftBadge shift={shift} width={34} height={14} font={9} /></HStack> : summary, {
-      reloadPolicy: { policy: 'after', date: nextChinaMidnight() },
-    })
+    const view = Widget.family === 'accessoryInline'
+      ? <Text lineLimit={1}>{`${today.month}月${today.day}日 ${i.label}${shift ? ' · ' + shift.name : ''}`}</Text>
+      : Widget.family === 'accessoryCircular'
+      ? <VStack spacing={1}>
+          <Text font={12} fontWeight="semibold" lineLimit={1} minScaleFactor={0.7}>{`${today.month}/${today.day}`}</Text>
+          <Text font={10} lineLimit={1} minScaleFactor={0.7}>{shift ? shift.name : i.label}</Text>
+        </VStack>
+      : (() => {
+          const summary = <Text font={11} lineLimit={2} minScaleFactor={0.8}>{`${today.month}月${today.day}日 ${i.label} ${i.footer}`}</Text>
+          return shift ? <HStack spacing={3}>{summary}<ShiftBadge shift={shift} width={34} height={14} font={9} /></HStack> : summary
+        })()
+    Widget.present(view, { reloadPolicy: { policy: 'after', date: nextChinaMidnight() } })
     return
   }
   const size = Widget.displaySize

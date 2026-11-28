@@ -1,6 +1,18 @@
-# 本地验证记录（1.0.0基础验证及1.1.0/1.2.0增量验证）
+# 本地验证记录（1.0.0—1.8.26）
 
-验证时间：2026-10-09，北京时间。工作目录 `/opt/openbear/workspace/lunar-work/`；项目交付目录 `/opt/openbear/workspace/artifacts/lunar-calendar/`。测试工具和下载依赖没有放入源码包。
+验证时间：2026-11-28，北京时间。工作目录 `/opt/openbear/workspace/lunar-work/`；项目交付目录 `/opt/openbear/workspace/artifacts/lunar-calendar/`。测试工具和下载依赖没有放入源码包。
+
+## 1.8.26 倒班编辑会话保护、边界年份网格兜底与状态收敛验证
+
+1. **倒班编辑会话（`shift-editor.ts`、`shift-settings.tsx`）**：
+   - 首次安装（`anchorDate: null`）、旧版配置（无 `cycleRule`）及损坏存储回退模板下，仅进入「倒班设置」查看或修改后还原即返回时，零 `Storage` 写入、不提前锁定或重置 `anchorDate`。
+   - 首次实际开启／修改保存时从当天起算；后续仅改名、改色、改样式或开关倒班保留已有 `anchorDate`；调序、新增或删除班次（包括同一会话内删除末尾班次后再新建班次，通过会话递增 `allocateShiftId` 避免复用旧 ID）均准确触发从保存当天重新起算。
+2. **极端年份与窄屏几何（`calendar.ts`、`home-cell-layout.ts`、`index.tsx`）**：
+   - `1901-01`（含 `1900-12` 邻月格）与 `2099-12`（含 `2100-01` 邻月格）的 42 格网格越界邻月格仅渲染淡色公历日号、不触发 `dayInfo` 抛错；系统时钟越界时 `clampCalendarDate` 安全钳制初始视图与选中日。
+   - 常规列宽（`≥51pt`）下休／班角标保持 `x + 21` 原位，窄屏列宽（如 `41.1pt`）下自动内收不越出格右缘。
+3. **假日刷新与打包类型检查（`holidays.ts`、`render.ts`、`widget.tsx`、`index.tsx`）**：
+   - `loadHoliday` 准确返回 `changed` 标记：缓存内容未变时为 `false`，新数据或内容变更时为 `true`；设置页手动刷新同步更新首页状态。
+   - `tsc -p tsconfig.json` 严格检查与 `index.tsx`、`widget.tsx` 的 `esbuild` 打包均通过。
 
 ## 1.3.0新右侧目标、完整容器及删除编辑页
 

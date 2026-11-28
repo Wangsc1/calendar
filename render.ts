@@ -43,7 +43,6 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
     const gridTop = headerY + (month ? 6 : 7)
     const gridBot = month ? h - 2 : h - 3 - f.today * .92 - 4
     const rowH = (gridBot - gridTop) / rows
-    const wf = settings.fonts.week
     const dayShifts = days.map(d => shiftOn(d, shifts))
     const hasGridShift = dayShifts.some(Boolean)
     // 统一按行高计算红底与倒班条：红底严格居中包住公历+农历视觉合块，并在倒班开启时与下方班次条保持净空。
@@ -55,7 +54,7 @@ export function renderCalendarSVG(today: CivilDate, holidays: HolidayResult[], m
       : Math.min(38, rowH - interRowGap, col - 4)
     const radius = Math.max(4, diameter / 2)
     const size = Math.max(1, hasGridShift ? Math.min(17, diameter * .49) : Math.min(17, diameter * .47))
-    const displayLunarSize = hasGridShift ? Math.min(wf.lunar, 8, diameter * .24) : Math.min(wf.lunar, diameter * .25)
+    const displayLunarSize = hasGridShift ? Math.min(f.lunar, 8, diameter * .24) : Math.min(f.lunar, diameter * .25)
     const inkGap = hasGridShift ? Math.max(1.4, size * .135) : Math.max(2, size * .2)
     // 日期采用原生Text（中心在 y - 0.35*size，iOS字形顶/底相对基线 y 为 -0.722*size 至 -0.018*size），
     // 农历采用SVG text（中文墨迹相对基线约 -0.86*fs 至 +0.10*fs），令合块视觉中心严格等于红底中心。

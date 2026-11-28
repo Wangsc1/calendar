@@ -54,6 +54,14 @@ export function weekOrder(start = DEFAULT_WEEK_START): number[] {
 }
 export function isWeekend(day: number): boolean { return day === 0 || day === 6 }
 export type CivilDate = { year: number; month: number; day: number }
+export function inCalendarRange(d: CivilDate): boolean {
+  return d.year >= MIN_YEAR && d.year <= MAX_YEAR
+}
+export function clampCalendarDate(d: CivilDate): CivilDate {
+  if (d.year < MIN_YEAR) return { year: MIN_YEAR, month: 1, day: 1 }
+  if (d.year > MAX_YEAR) return { year: MAX_YEAR, month: 12, day: 31 }
+  return d
+}
 export type DayInfo = CivilDate & {
   key: string; weekday: number; lunarDay: number
   lunarLabel: string; festivals: string[]; term: string; label: string; footer: string

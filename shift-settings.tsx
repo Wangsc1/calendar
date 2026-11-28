@@ -2,7 +2,7 @@ import { Button, EditButton, ForEach, HStack, Image, List, Picker, RoundedRectan
 import type { Observable, VirtualNode } from 'scripting'
 import { Shift, ShiftRead, ShiftSettings, ShiftStyle, SHIFT_COLORS, LEGACY_SHIFT_COLORS, MAX_SHIFTS } from './shifts'
 import { ShiftBadge } from './shift-badge'
-import { ShiftEditor, commitShiftEditor, orderedShiftDraft } from './shift-editor'
+import { ShiftEditor, allocateShiftId, commitShiftEditor, orderedShiftDraft } from './shift-editor'
 
 // 仅合并展示色板：保留新色顺序，再追加未重复的合法旧色；不迁移任何已存颜色。
 const APPEARANCE_COLORS = [...SHIFT_COLORS, ...LEGACY_SHIFT_COLORS].filter((c, i, all) => all.findIndex(x => x.value === c.value) === i)
@@ -170,10 +170,9 @@ export function ShiftSettingsPage({ editor, onSaved }: { editor: ShiftEditor; on
       {shiftRows}
       <Button title="新建班次" action={() => {
         if (editor.draft.shifts.length >= MAX_SHIFTS) { void Dialog.alert({ message: '最多12种班次。' }); return }
-        let n = 1
-        while (editor.draft.shifts.some(s => s.id === `s${n}`)) n++
-        // 新班次追加到每日循环；旧行回调另有对象身份保护，复用空闲ID也不会误删新类型。
-        setDraft({ ...editor.draft, shifts: [...editor.draft.shifts, { id: `s${n}`, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
+        const id = allocateShiftId(editor)
+        // 新班次使用会话递增ID追加到每日循环，避免同轮删除后再新建复用旧ID导致漏算结构变更。
+        setDraft({ ...editor.draft, shifts: [...editor.draft.shifts, { id, name: '', color: SHIFT_COLORS[0].value, style: 'normal' }] })
       }} />
     </Section>
   </List>

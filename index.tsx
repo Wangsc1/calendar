@@ -1,5 +1,5 @@
 import { Button, Circle, GeometryReader, HStack, Image, List, Navigation, NavigationLink, NavigationStack, Picker, Rectangle, RoundedRectangle, Script, ScrollView, Section, Spacer, Text, VStack, Widget, ZStack, useEffect, useMemo, useState } from 'scripting'
-import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, dateKey, dayInfo, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
+import { Appearance, CivilDate, MAX_YEAR, MIN_YEAR, WEEKDAY_NAMES, chinaToday, clampCalendarDate, dateKey, dayInfo, inCalendarRange, isWeekend, layoutDates, monthGrid, readAppearance, saveAppearance, normalizeAppearance, weekOrder } from './calendar'
 import { HolidayResult, holidayOn, loadHoliday, scriptingHolidayIO } from './holidays'
 import { VERSION } from './version'
 import { ShiftRead, ShiftSettings, readShifts, shiftOn } from './shifts'
@@ -7,7 +7,7 @@ import { ShiftSettingsPage } from './shift-settings'
 import { ShiftBadge } from './shift-badge'
 import { ShiftEditor, createShiftEditor } from './shift-editor'
 import { CALENDAR_TODAY_CORNER } from './calendar-geometry'
-import { HOME_CELL_HEIGHT, HOME_HOLIDAY_OFFSET_Y, homeCellLayout } from './home-cell-layout'
+import { HOME_CELL_HEIGHT, homeCellLayout } from './home-cell-layout'
 import { shiftLabelFont, shiftPaint } from './shift-style'
 
 let busy = false
@@ -38,7 +38,11 @@ function PreviewButton() {
     void feedback(async () => { await Widget.preview({ family: 'systemMedium' }); return null })
   }} />
 }
-function SettingsPage({ settings, setSettings, shiftState, setShiftState, shiftEditor }: { settings: Appearance; setSettings: (value: Appearance) => void; shiftState: ShiftRead; setShiftState: (value: ShiftRead) => void; shiftEditor: ShiftEditor }) {
+function SettingsPage({ settings, setSettings, shiftState, setShiftState, shiftEditor, onRefreshHolidays }: {
+  settings: Appearance; setSettings: (value: Appearance) => void
+  shiftState: ShiftRead; setShiftState: (value: ShiftRead) => void
+  shiftEditor: ShiftEditor; onRefreshHolidays: () => Promise<string>
+}) {
   return <List navigationTitle="日历设置" navigationBarTitleDisplayMode="inline" listStyle="insetGroup"
       scrollContentBackground="hidden" background="systemGroupedBackground">
       <Section header={<HStack><Text>设置</Text><Spacer /><Text>{VERSION}</Text></HStack>}>
@@ -73,12 +77,7 @@ function SettingsPage({ settings, setSettings, shiftState, setShiftState, shiftE
       </Section>
       <Section header={<Text>预览组件</Text>}><PreviewButton /></Section>
       <Section header={<Text>假日数据</Text>}>
-        <Button title="刷新缓存" action={() => { void feedback(async () => {
-          const today = chinaToday(), years = Array.from(new Set([...layoutDates(today, 'month', settings.weekStart), ...layoutDates(today, 'week', settings.weekStart)].map(d => d.year)))
-          const results = await Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO, true)))
-          Widget.reloadAll()
-          return results.map(r => r.source).join('；')
-        }) }} />
+        <Button title="刷新缓存" action={() => { void feedback(onRefreshHolidays) }} />
       </Section>
     </List>
 }
@@ -89,6 +88,17 @@ const shiftMonth = (d: CivilDate, n: number): CivilDate => {
 function DayCell({ d, month, today, selected, holidays, settings, shifts, onSelect }: {
   d: CivilDate; month: number; today: string; selected: string; holidays: HolidayResult[]; settings: Appearance; shifts: ShiftSettings; onSelect: (d: CivilDate) => void
 }) {
+  if (!inCalendarRange(d)) {
+    return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: HOME_CELL_HEIGHT, maxHeight: HOME_CELL_HEIGHT }} opacity={0.35}>
+      <GeometryReader>{proxy => {
+        const g = homeCellLayout(proxy.size.width)
+        return <ZStack frame={{ width: g.width, height: g.height }}>
+          <Text font={18} fontWeight="semibold" foregroundStyle="label" lineLimit={1}
+            frame={{ width: g.width, height: 22 }} position={{ x: g.x, y: g.dateCenterY }}>{String(d.day)}</Text>
+        </ZStack>
+      }}</GeometryReader>
+    </VStack>
+  }
   const info = dayInfo(d), isToday = info.key === today, isSelected = info.key === selected && !isToday
   const outside = d.month !== month, mark = holidayOn(d, holidays), shift = shiftOn(d, shifts)
   const dim = outside ? 0.35 : isWeekend(info.weekday) ? 0.55 : 1
@@ -97,10 +107,7 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
   const markColor = mark?.isOffDay ? '#55a9ff' : '#ffad52'
   const calendarOpacity = shift ? { opacity: isToday ? 1 : dim } : {}
   return <VStack spacing={1} frame={{ minWidth: 0, maxWidth: 'infinity', minHeight: HOME_CELL_HEIGHT, maxHeight: HOME_CELL_HEIGHT }} opacity={shift ? 1 : isToday ? 1 : dim}
-    contentShape="rect" onTapGesture={() => onSelect(d)}
-    // 休/班保持在公历数字右上角相对位置，不随今日或选择态改变。
-    overlay={mark ? { alignment: 'center', content: <Text {...calendarOpacity} font={9} fontWeight="heavy" foregroundStyle={markColor}
-      offset={{ x: 21, y: HOME_HOLIDAY_OFFSET_Y }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> } : undefined}>
+    contentShape="rect" onTapGesture={() => onSelect(d)}>
     <GeometryReader>{proxy => {
       // GeometryReader在已固定56点的整格中只读宽度，不再测Text/VStack背景的未知高度。
       const g = homeCellLayout(proxy.size.width)
@@ -119,6 +126,9 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
           frame={{ width: Math.max(0, g.width - 6), height: 12 }} position={{ x: g.x, y: g.lunarCenterY }}>{label}</Text>
         {info.lunarDay === 1 ? <Rectangle {...calendarOpacity} fill={isToday ? 'white' : '#e74748'}
           frame={{ width: 12, height: 2 }} position={{ x: g.x, y: g.lunarLineY }} /> : null}
+        {/* 休/班保持在公历数字右上角相对位置，并在窄屏格宽下自动钳制防止越出格右缘。 */}
+        {mark ? <Text {...calendarOpacity} font={9} fontWeight="heavy" foregroundStyle={markColor} lineLimit={1} fixedSize
+          position={{ x: g.holidayX, y: g.holidayY }}>{settings.holidayStyle === 'dot' ? '●' : mark.isOffDay ? '休' : '班'}</Text> : null}
         {/* 背景本身明确col−10，不依赖Text intrinsic宽或frame/background修饰器执行顺序。 */}
         {shift && light && dark ? <RoundedRectangle cornerRadius={3} fill={{ light: light.background, dark: dark.background }}
             frame={{ width: g.shiftWidth, height: g.shiftHeight }} position={{ x: g.x, y: g.shiftCenterY }} /> : null}
@@ -130,31 +140,46 @@ function DayCell({ d, month, today, selected, holidays, settings, shifts, onSele
     }}</GeometryReader>
   </VStack>
 }
-function HomePage() {
+function HomePage({ initialSettings, initialShifts, initialEditor }: {
+  initialSettings: Appearance; initialShifts: ShiftRead; initialEditor: ShiftEditor
+}) {
   const dismiss = Navigation.useDismiss()
-  const today = chinaToday(), todayKey = dateKey(today)
-  const [settings, setSettings] = useState(readAppearance())
-  const [view, setView] = useState<CivilDate>({ year: today.year, month: today.month, day: 1 })
-  const [selected, setSelected] = useState<CivilDate>(today)
+  const today = chinaToday(), todayKey = dateKey(today), safeToday = clampCalendarDate(today)
+  const [settings, setSettings] = useState(initialSettings)
+  const [view, setView] = useState<CivilDate>({ year: safeToday.year, month: safeToday.month, day: 1 })
+  const [selected, setSelected] = useState<CivilDate>(safeToday)
   const [holidays, setHolidays] = useState<HolidayResult[]>([])
   const [holidaySession] = useState({ firstLoad: true })
-  const [shiftState, setShiftState] = useState(readShifts())
-  const [shiftEditor] = useState(createShiftEditor(shiftState))
+  const [shiftState, setShiftState] = useState(initialShifts)
+  const [shiftEditor] = useState(initialEditor)
   const days = useMemo(() => monthGrid(view, settings.weekStart), [view.year, view.month, settings.weekStart])
+  const viewYears = useMemo(() => Array.from(new Set(days.filter(inCalendarRange).map(d => d.year))), [days])
+  const viewYearKey = viewYears.join(',')
   useEffect(() => {
     let cancelled = false
-    const years = Array.from(new Set(days.map(d => d.year)))
     const force = holidaySession.firstLoad
     holidaySession.firstLoad = false
-    // 每次运行首页首次加载都联网；浏览其他月份仍沿用原缓存策略。
-    void Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO, force))).then(data => {
+    if (!viewYears.length) { setHolidays([]); return }
+    // 每次运行首页首次加载都联网；浏览其他月份仍沿用原缓存策略，仅在数据有实际更新时请求刷新小组件。
+    void Promise.all(viewYears.map(y => loadHoliday(y, scriptingHolidayIO, force))).then(data => {
       if (!cancelled) {
         setHolidays(data)
-        if (force && data.some(r => r.source.includes('联网'))) Widget.reloadAll()
+        if (force && data.some(r => r.changed)) Widget.reloadAll()
       }
     })
     return () => { cancelled = true }
-  }, [days])
+  }, [viewYearKey])
+  const refreshHolidays = async () => {
+    const nowToday = chinaToday()
+    const baseDates = [...layoutDates(nowToday, 'month', settings.weekStart), ...layoutDates(nowToday, 'week', settings.weekStart)]
+    const years = Array.from(new Set([...baseDates.filter(inCalendarRange).map(d => d.year), ...viewYears]))
+    if (!years.length) return '当前日期超出假日支持范围'
+    const results = await Promise.all(years.map(y => loadHoliday(y, scriptingHolidayIO, true)))
+    const byYear = new Map(years.map((y, idx) => [y, results[idx]]))
+    setHolidays(viewYears.map(y => byYear.get(y)).filter((r): r is HolidayResult => Boolean(r)))
+    Widget.reloadAll()
+    return results.map(r => r.source).join('；')
+  }
   const move = (n: number) => {
     const next = shiftMonth(view, n)
     if (next.year < MIN_YEAR || next.year > MAX_YEAR) return
@@ -167,13 +192,14 @@ function HomePage() {
     <ScrollView background="systemBackground"
       toolbar={{
         cancellationAction: <Button title="" systemImage="xmark" action={dismiss} />,
-        topBarTrailing: <NavigationLink destination={<SettingsPage settings={settings} setSettings={setSettings} shiftState={shiftState} setShiftState={setShiftState} shiftEditor={shiftEditor} />}>
+        topBarTrailing: <NavigationLink destination={<SettingsPage settings={settings} setSettings={setSettings} shiftState={shiftState} setShiftState={setShiftState} shiftEditor={shiftEditor} onRefreshHolidays={refreshHolidays} />}>
           <Image systemName="ellipsis.circle" />
         </NavigationLink>,
       }}>
       <VStack alignment="leading" spacing={18} padding={{ leading: 16, trailing: 16, top: 8, bottom: 24 }}>
         <Text font={34} fontWeight="bold" foregroundStyle="label" onTapGesture={() => {
-          setView({ year: today.year, month: today.month, day: 1 }); setSelected(today)
+          const current = clampCalendarDate(chinaToday())
+          setView({ year: current.year, month: current.month, day: 1 }); setSelected(current)
         }}>{`${today.year}年${today.month}月${today.day}日`}</Text>
         <HStack spacing={36} frame={{ maxWidth: 'infinity' }}>
           <Button title="" systemImage="chevron.left" foregroundStyle="#e74748" action={() => move(-1)} />
@@ -207,7 +233,13 @@ function HomePage() {
   </NavigationStack>
 }
 async function run() {
-  await Navigation.present({ element: <HomePage />, modalPresentationStyle: 'fullScreen' })
+  const initialSettings = readAppearance()
+  const initialShifts = readShifts()
+  const initialEditor = createShiftEditor(initialShifts)
+  await Navigation.present({
+    element: <HomePage initialSettings={initialSettings} initialShifts={initialShifts} initialEditor={initialEditor} />,
+    modalPresentationStyle: 'fullScreen',
+  })
   Script.exit()
 }
 run()
